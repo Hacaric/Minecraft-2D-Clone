@@ -3,5 +3,5 @@ Python recreation of Griffpatch's scratch project - https://scratch.mit.edu/proj
 Textures and souds are copyed from his project.
 
 Reuiements:
- - Python 3 or higher - match-case is used
- - pygame library  - can be installed by $pip install pygame
+ - Python 3.10 or higher - (match is used)
+ - Pygame library  - can be installed by $pip install pygame

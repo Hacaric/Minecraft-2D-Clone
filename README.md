@@ -6,7 +6,7 @@ Python recreation of game **Minecraft** - https://minecraft.net/
 _Textures and souds are copyed from Griffpatch's project._  
 
 **Reuiements:**
- - Python 3.10 or higher - (match is used)
+ - Python 3.10 or higher - (match-case is used)
  - Pygame library  - can be installed by $pip install pygame
 
 **Controls:**

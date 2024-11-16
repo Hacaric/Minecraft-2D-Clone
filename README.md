@@ -1,9 +1,9 @@
 # Paper-Minecraft-Release
 
-Python recreation of Griffpatch's scratch project - https://scratch.mit.edu/projects/10128407/
+Python recreation of Griffpatch's scratch project - https://scratch.mit.edu/projects/10128407/  
 Python recreation of game **Minecraft** - https://minecraft.net/
 
-_Textures and souds are copyed from his project._
+_Textures and souds are copyed from Griffpatch's project._  
 
 **Reuiements:**
  - Python 3.10 or higher - (match is used)

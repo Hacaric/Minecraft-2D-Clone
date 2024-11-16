@@ -19,10 +19,10 @@ Textures and souds are copyed from his project.
 </table>
 
 **Features:**
--block placement and breaking
--block sounds
--choose block from hotbar
--save and load worlds
--infinite world generation
+- block placement and breaking
+- block sounds
+- choose block from hotbar
+- save and load worlds
+- infinite world generation
 
 __I'm activly working on this project__

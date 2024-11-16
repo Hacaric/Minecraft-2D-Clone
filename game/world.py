@@ -1,5 +1,9 @@
 import math
+# import perlin
+from player import defaultPlayer
 import random
+import gameExceptions
+import texture_storage
 from world_render import Point2d
 from texture_storage import block_texture_id, not_full
 def random_num(seed, a, b):
@@ -143,61 +147,37 @@ class World:
         x = x % chunk_size_x
         #print(x, y, self.get_chunk(chunkX).block(x, y))
         return self.get_chunk(chunkX).get_block(x, y)
-    def find_nearest_free(self, startx, starty):
-        return -1
-        if not Yislegal(starty):
-            return None
-        block_list = [[startx,starty]]
-        for i in range(max(chunk_size_x, chunk_size_y)):
-            for j in range(len(block_list)):
-                current_block_list = block_list.copy()
-                for j in range(len(current_block_list)):
-                    x, y = current_block_list[j]
-                    chunk = self.get_chunk(x // chunk_size_x)
-                    x_in_chunk = x % chunk_size_x
-                    # Check above
-                    if chunk.block(x_in_chunk, y + 1) in not_full:
-                        return Point2d(x, y + 1)
-                    # Check below
-                    if chunk.block(x_in_chunk, y - 1) in not_full:
-                        return Point2d(x, y - 1)
-                    # Check right
-                    if chunk.block((x_in_chunk + 1) % chunk_size_x, y) in not_full:
-                        return Point2d(x + 1, y)
-                    # Check left
-                    if chunk.block((x_in_chunk - 1) % chunk_size_x, y) in not_full:
-                        return Point2d(x - 1, y)
+    def find_player(self, name):
+        try:
+            return self.player_names.index(name)
+        except:
+            raise gameExceptions.PlayerNotExist()
+    def add_player(self, name, x, y, angle):
+        if name in self.player_names:
+            raise gameExceptions.PlayerAlreadyExcist()
+        self.player_names.append(name)
+        self.player.append(defaultPlayer(x, y, angle))
 
-                    # Add sides to block_list if not already present
-                    if [x, y + 1] not in block_list:
-                        block_list.append([x, y + 1])
-                    if [x, y - 1] not in block_list:
-                        block_list.append([x, y - 1])
-                    if [x + 1, y] not in block_list:
-                        block_list.append([x + 1, y])
-                    if [x - 1, y] not in block_list:
-                        block_list.append([x - 1, y])
-    # def check_preloaded(self, current_chunkX, playerx):
-    #     if playerx // 16 != current_chunkX:
-    #         preloadedbaseX = current_chunkX - chunk_size_x
-    #         chunkX = playerx // 16
-    #         if chunkX + 1 == current_chunkX:
-    #             preloaded_area = [self.get_chunk(chunk_size_x * (chunkX - 1))] + preloaded_area[1:3]
-    #         elif chunkX + 1 == current_chunkX:
-    #             preloaded_area = preloaded_area[0:2] + [self.get_chunk(chunk_size_x * (chunkX + 1))]
-    #         else:
-    #             preloaded_area = [self.get_chunk(chunk_size_x * (chunkX - 1)), self.get_chunk(chunk_size_x * chunkX), self.get_chunk(chunk_size_x * (chunkX + 1))]
-
-    def __init__(self):
+    def __init__(self, not_pregen = False):
         self.respawn_anchor = None
         self.seed = random.randint(0, 99999999)
         self.chunkpoz = []
         self.chunkneg = []
-        self.chunkpoz.append(self.generate_chunk(0, self.seed, population=True))  # Generate the first chunk
+        if not not_pregen:
+            self.chunkpoz.append(self.generate_chunk(0, self.seed, population=True))
         self.background = "#ccd8ff"
         self.block_sound_delay = 7
         self.current_delay = self.block_sound_delay
         self.world_spawn = Point2d(0, self.chunkpoz[0].surface(0)+1)
+        self.active = []
+        self.player_sizex = 0.3
+        self.player_sizey = 2
+        self.getblock = self.get_block
+        #player = defaultPlayer(overworld, 0, player_sizex, player_sizey, player_textures, block_size)
+        self.player_color = (0, 20, 255)  # Gray color
+        self.main_player = defaultPlayer(self.world_spawn.x, self.world_spawn.y, 0, self.player_sizex, self.player_sizey)
+        self.players = []#, defaultPlayer(self, 0, self.player_sizex, self.player_sizey)]
+        #self.test_player = defaultPlayer(self, 0, self.player_sizex, self.player_sizey, texture_storage.load_player_textures())
         # self.churrent_chunkX = 0
         # self.loadedbaseX = -chunk_size_x
         # self.loaded_chunks = [self.get_chunk(-1), self.get_chunk(0), self.get_chunk(1)]

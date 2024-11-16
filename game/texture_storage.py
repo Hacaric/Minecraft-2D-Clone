@@ -1,5 +1,6 @@
 import pygame
 import random
+import gameExceptions
 
 # Texture and sound data
 #block_names = ["air", "sand", "cobblestone", "stone", "bedrock", "grass", "dirt", "plank", "glass", "wood", "leaves", "short_grass"]
@@ -87,43 +88,89 @@ player_folder = "assets/textures/player/"
 player_textures = {}
 
 #--------TEXTURE LOADING-----------
-def load_textures_and_sounds(block_size, block_size_add):
-    global item_size
-    item_size = block_size/8*7
+def load_gui_textures():
     try:
         for key, file_path in gui_files.items():
             gui_textures[key] = pygame.image.load(gui_folder + file_path).convert_alpha()
         print(f"Loaded {len(gui_textures)} GUI textures.")
+        return gui_textures
+    except Exception as e:
+        print("\nError loading GUI textures:\n", e)
+        exit()
+
+def load_cursor_textures(block_size, block_size_add):
+    try:
         cursor = [pygame.transform.scale(pygame.image.load(cursor_folder + "cursor.png"), (block_size+block_size_add, block_size+block_size_add))]
         for i in range(1, 11):
             cursor.append(pygame.transform.scale(pygame.image.load(f"{cursor_folder}cursor{i}.png"), (block_size+block_size_add, block_size+block_size_add)))
         print(f"Loaded {len(cursor)} cursor textures.")
+        return cursor
+    except Exception as e:
+        print("\nError loading cursor textures:\n", e)
+        exit()
+
+def load_block_textures(block_size, block_size_add):
+    try:
         textures = []
         for i in block_texture_files:
             for j in range(len(block_texture_files[i])):
                 textures.append(pygame.transform.scale(pygame.image.load(texture_folder + block_texture_files[i][j]), (block_size+block_size_add, block_size+block_size_add)))
         print(f"Loaded block textures.")
+        return textures
+    except Exception as e:
+        print("\nError loading block textures:\n", e)
+        exit()
+
+def load_item_textures(item_size):
+    try:
         item_textures = []
         for i in block_texture_files:
             for j in range(len(block_texture_files[i])):
                 item_textures.append(pygame.transform.scale(pygame.image.load(texture_folder + block_texture_files[i][j]), (item_size, item_size)))
         print(f"Loaded item textures.")
-        for key in player_textures_files.keys():
-            player_textures[key] = pygame.image.load(player_folder + player_textures_files[key]).convert_alpha()
-        player_textures["leg_l"] = pygame.transform.flip(player_textures["leg_r"], True, False)
+        return item_textures
     except Exception as e:
-        print("\nError loading textures:\n", e)
+        print("\nError loading item textures:\n", e)
         exit()
-    #-----------TEXTURE LOADING END------------
 
-    # Load sound effects
-    block_sound = {}
-    for i in sound_files:
-        block_sound[i] = []    #pygame.mixer.Sound("assets/sounds/grass.wav").play()
-        for j in range(len(sound_files[i])):
-            block_sound[i].append(pygame.mixer.Sound(sound_folder + sound_files[i][j]))
-    return [cursor, textures, block_sound, item_textures]
+def load_player_textures(player_textures_files = player_textures_files):
+    for key in player_textures_files.keys():
+        player_textures[key] = pygame.image.load(player_folder + player_textures_files[key]).convert_alpha()
+    player_textures["leg_l"] = pygame.transform.flip(player_textures["leg_r"], True, False)
+    return player_textures
+    try:
+        pass
+    except Exception as e:
+        print("\nError loading player textures:\n", e)
+        exit()
 
+def load_sound_effects():
+    try:
+        block_sound = {}
+        for i in sound_files:
+            block_sound[i] = []
+            for j in range(len(sound_files[i])):
+                block_sound[i].append(pygame.mixer.Sound(sound_folder + sound_files[i][j]))
+        return block_sound
+    except Exception as e:
+        print("\nError loading sound effects:\n", e)
+        exit()
+
+def load_textures_and_sounds(block_size, block_size_add):
+    global item_size
+    item_size = block_size/8*7
+    
+    gui_t = load_gui_textures()
+    cursor = load_cursor_textures(block_size, block_size_add)
+    textures = load_block_textures(block_size, block_size_add)
+    item_textures = load_item_textures(item_size)
+    player_t = load_player_textures()
+    block_sound = load_sound_effects()
+    
+    return [cursor, textures, block_sound, item_textures, player_t, gui_t]
 def random_sound(name, block_sound):
-    sound_type = sound_list[name]
+    try:
+        sound_type = sound_list[name]
+    except:
+        return gameExceptions.ErrorGettingSound(name)
     return random.choice(block_sound[sound_type])

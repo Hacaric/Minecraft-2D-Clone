@@ -52,8 +52,6 @@ class Button:
         button_surface.blit(text_surface, text_rect)
         surface.blit(button_surface, thisrect)
         
-        click = pygame.mouse.get_pressed()
-        
         if thisrect.collidepoint(mouse_pos) and mouse_clicked:
             return True
         

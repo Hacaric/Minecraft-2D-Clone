@@ -1,7 +1,8 @@
 # Paper-Minecraft-Release
 
 Python recreation of Griffpatch's scratch project - https://scratch.mit.edu/projects/10128407/
-Textures and souds are copyed from his project.
+
+_Textures and souds are copyed from his project._
 
 **Reuiements:**
  - Python 3.10 or higher - (match is used)
@@ -25,4 +26,4 @@ Textures and souds are copyed from his project.
 - save and load worlds
 - infinite world generation
 
-__I'm activly working on this project__
+__I'm activly working on this project :)__

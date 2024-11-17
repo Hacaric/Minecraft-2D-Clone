@@ -1,29 +1,29 @@
 # Minecraft Clone 2D
 
-### This is NOT official project by Mojang studios
+### This is NOT an official project by Mojang Studios
 </br>
 
-**Minecraft 2D is python recreation of scratch project Paper Minecraft made by Griffpatch.
-It's 2D Minecraft clone - you can mine and place blocks, move around, but survival mode and inventory are still in development.
-It runs on 30fps - when I finish new rendering should be able to run 60fps.
+**Minecraft 2D is a Python recreation of the Scratch project Paper Minecraft by Griffpatch.
+It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and inventory are still in development.
+It runs at 30fps; once I finish new rendering, it should be able to run at 60fps.
 I'm currently working on multiplayer mode.**</br></br>
-If you are reading this please share :D - idk if anybody reads this.</br></br>
+If you are reading this please share :D - I'm glad if anybody reads this.</br></br>
 
 ## Credits
-Original scratch **Griffpatch's scratch project** - https://scratch.mit.edu/projects/10128407/  
+Original Scratch project by **Griffpatch** - https://scratch.mit.edu/projects/10128407/  
 Original game: **Minecraft** - https://minecraft.net/   
-Logo was created using minecraft fonts and site https://web.blockbench.net/    
+The logo was created using Minecraft fonts and this site: https://web.blockbench.net/    
 
-_Textures and souds are mostly copyed from Griffpatch's project._  
+_Textures and sounds are mostly copied from Griffpatch's project._  
 
 
-## Reuiements:
+## Requirements:
  - Python 3.10 or higher - (match-case is used)
  - Pygame library  - can be installed by ```$pip install pygame```
 
 ## Controls:
 <table>
-<tr><td>Blace block</td><td>Right mouse button</td></tr>
+<tr><td>Place block</td><td>Right mouse button</td></tr>
 <tr><td>Destroy block</td><td>Left mouse button</td></tr>
 <tr><td>Move to right</td><td>D</td></tr>
 <tr><td>Move to left</td><td>A</td></tr>
@@ -48,4 +48,4 @@ _Textures and souds are mostly copyed from Griffpatch's project._
 
 
 
-__I'm activly working on this project :)__
+__I'm actively working on this project :)__

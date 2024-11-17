@@ -65,7 +65,7 @@ gui_files = {
     "chest": "inventory/chest.png",
     "button": "button.png",
     "button_hover": "button_hover.png",
-    "main_manu_background": "background/griffpatch.png"
+    "main_manu_background": "background/mc_background.png"
 }
 structures = {}
 gui_textures = {}

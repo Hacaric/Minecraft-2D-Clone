@@ -3,9 +3,9 @@ import math
 from player import defaultPlayer
 import random
 import gameExceptions
-import texture_storage
+import texture_loader
 from world_render import Point2d
-from texture_storage import block_texture_id, not_full
+from texture_loader import block_texture_id, not_full
 def random_num(seed, a, b):
     random.seed(seed*(a-201)*(b**2+1))
     # print(random.random())
@@ -158,24 +158,27 @@ class World:
         self.player_names.append(name)
         self.player.append(defaultPlayer(x, y, angle))
 
-    def __init__(self, not_pregen = False):
+    def __init__(self, not_pregen = False, gamemode=0):
         self.respawn_anchor = None
         self.seed = random.randint(0, 99999999)
         self.chunkpoz = []
         self.chunkneg = []
         if not not_pregen:
             self.chunkpoz.append(self.generate_chunk(0, self.seed, population=True))
+            self.world_spawn = Point2d(0, self.chunkpoz[0].surface(0)+1)
+        else:
+            self.world_spawn = Point2d(0, 0)
         self.background = "#ccd8ff"
         self.block_sound_delay = 7
         self.current_delay = self.block_sound_delay
-        self.world_spawn = Point2d(0, self.chunkpoz[0].surface(0)+1)
         self.active = []
         self.player_sizex = 0.3
-        self.player_sizey = 2
-        self.getblock = self.get_block
+        self.player_sizey = 1.8
+        self.gamemode = gamemode #0 - creative, 1 - survival
+        self.getblock = self.get_block #Beeacouse im forgitting to write the "_" :D
         #player = defaultPlayer(overworld, 0, player_sizex, player_sizey, player_textures, block_size)
-        self.player_color = (0, 20, 255)  # Gray color
         self.main_player = defaultPlayer(self.world_spawn.x, self.world_spawn.y, 0, self.player_sizex, self.player_sizey)
+        self.player_color = (0, 20, 255)  # Gray color
         self.players = []#, defaultPlayer(self, 0, self.player_sizex, self.player_sizey)]
         #self.test_player = defaultPlayer(self, 0, self.player_sizex, self.player_sizey, texture_storage.load_player_textures())
         # self.churrent_chunkX = 0

@@ -13,3 +13,5 @@ class PlayerAlreadyExcist(Exception):
     pass
 class PlayerNotExist(Exception):
     pass
+class NotEnoughStates(Exception):
+    pass

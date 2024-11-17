@@ -1,7 +1,7 @@
 import pygame
 
 class Button:
-    def __init__(self, x, y, width, height, texture, text, data = []):
+    def __init__(self, x, y, width, height, texture, text):
         self.rect = pygame.Rect(x, y, width, height)
         self.texture = texture
         self.hover_texture = pygame.image.load("assets/textures/GUI/button_hover.png")
@@ -9,7 +9,6 @@ class Button:
         self.color = (200, 200, 200)
         self.text_color = (0, 0, 0)
         self.font = pygame.font.Font(None, 32)
-        self.data = data
 
     def render(self, surface, mouse_clicked, x = None, y = None, text = None, width = False, height = False):
         if text == None:

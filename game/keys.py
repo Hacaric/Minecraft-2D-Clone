@@ -37,9 +37,31 @@ keydict = {
     pygame.K_PAGEUP: False, pygame.K_PAUSE: False, pygame.K_PRINT: False, pygame.K_RIGHT: False,
     pygame.K_SCROLLLOCK: False, pygame.K_LSHIFT: False, pygame.K_RSHIFT: False,
     pygame.K_SPACE: False, pygame.K_TAB: False, pygame.K_UP: False,
-    pygame.K_LEFT: False, pygame.K_RIGHT: False,
+    pygame.K_LEFT: False, pygame.K_RIGHT: False, None: False,
     # # Mouse buttons
     # pygame.MOUSEBUTTONDOWN: False,
     # pygame.MOUSEBUTTONUP: False,
     #pygame.MOUSEMOTION: False
+}
+controls = {
+    "up": pygame.K_w,
+    "down": pygame.K_s,
+    "left": pygame.K_a,
+    "right": pygame.K_d,
+    "jump": pygame.K_SPACE,
+    "inventory": pygame.K_i,
+    "pause": pygame.K_ESCAPE,
+    "hotbar_1": pygame.K_1,
+    "hotbar_2": pygame.K_2,
+    "hotbar_3": pygame.K_3,
+    "hotbar_4": pygame.K_4,
+    "hotbar_5": pygame.K_5,
+    "hotbar_6": pygame.K_6,
+    "hotbar_7": pygame.K_7,
+    "hotbar_8": pygame.K_8,
+    "hotbar_9": pygame.K_9,
+    "hotbar_0": pygame.K_0,
+    "hotbar_scroll_up": pygame.K_PAGEUP,
+    "hotbar_scroll_down": pygame.K_PAGEDOWN,
+    "force_quit":pygame.K_SEMICOLON
 }

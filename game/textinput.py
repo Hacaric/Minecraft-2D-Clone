@@ -81,3 +81,11 @@ class TextInput:
     
         return None
         #return self.text
+
+
+class margin:
+    def __init__(self, left:int, top:int, right:int, bottom:int) -> None:
+        self.left = left
+        self.top = top
+        self.right = right
+        self.bottom = bottom

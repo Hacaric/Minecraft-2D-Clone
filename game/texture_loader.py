@@ -5,36 +5,37 @@ import gameExceptions
 # Texture and sound data
 #block_names = ["air", "sand", "cobblestone", "stone", "bedrock", "grass", "dirt", "plank", "glass", "wood", "leaves", "short_grass"]
 block_texture_files = {
-    "air": ["#.png"],
-    "sand": ["sand.png"],
-    "cobblestone": ["Cobblestone.png"],
-    "stone": ["rock.png"],
-    "bedrock": ["bedrock.png"],
-    "grass": ["grass.png"],
-    "dirt": ["dirt.png"],
-    "plank": ["woodenplanks.png"],
-    "glass": ["glass2.png"],
-    "wood":["wood.png"],
-    "leaves":["leaves2.png"],
-    "short_grass":["short_grass.png"],
-    "flower":["rose3.png"]
+    "air": ["#.png"],                          # 0
+    "sand": ["sand.png"],                    # 1
+    "cobblestone": ["Cobblestone.png"],      # 2
+    "stone": ["rock.png"],                   # 3
+    "bedrock": ["bedrock.png"],              # 4
+    "grass": ["grass.png"],                  # 5
+    "dirt": ["dirt.png"],                    # 6
+    "plank": ["woodenplanks.png"],           # 7
+    "glass": ["glass2.png"],                 # 8
+    "wood":["wood.png"],                     # 9
+    "leaves":["leaves2.png"],                # 10
+    "short_grass":["short_grass.png"],       # 11
+    "flower":["rose3.png"],                  # 12
+    "chunk_border":["chunk_border.png"],     # 13
 }
 block_names = []
 for item in block_texture_files:
     block_names.append(item)
 #item_names = ["air", "sand", "cobblestone", "stone", "bedrock", "grass", "dirt", "plank", "glass", "wood", "leaves"]
 item_texture_names = {
-    "air": ["#.png"],
-    "sand": ["sand.png"],
-    "cobblestone": ["Cobblestone.png"],
-    "stone": ["rock.png"],
-    "bedrock": ["bedrock.png"],
-    "grass": ["grass.png"],
-    "dirt": ["dirt.png"],
-    "plank": ["woodenplanks.png"],
-    "glass": ["glass2.png"],
-    "wood":["wood.png"],
-    "leaves":["leaves3.png"]
+    "air": ["#.png"],                    # 0
+    "sand": ["sand.png"],              # 1
+    "cobblestone": ["Cobblestone.png"], # 2
+    "stone": ["rock.png"],             # 3
+    "bedrock": ["bedrock.png"],        # 4
+    "grass": ["grass.png"],            # 5
+    "dirt": ["dirt.png"],              # 6
+    "plank": ["woodenplanks.png"],     # 7
+    "glass": ["glass2.png"],           # 8
+    "wood":["wood.png"],               # 9
+    "leaves":["leaves3.png"],          # 10
 }
 
 item_names = []
@@ -70,7 +71,7 @@ gui_files = {
 structures = {}
 gui_textures = {}
 
-not_full = [True, False, False, False, False, False, False, False, False, True, True, True, True]
+not_full_blocks = [True, False, False, False, False, False, False, False, False, True, True, True, True]
 list_breaking_time = [-1, 5, 10, 10, -1, 3, 3]
 
 # Generate texture IDs

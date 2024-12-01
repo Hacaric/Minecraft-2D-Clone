@@ -1,31 +1,34 @@
 import math
-# import perlin
+import perlin
 from player import defaultPlayer
 import random
 import gameExceptions
 import texture_loader
 from world_render import Point2d
-from texture_loader import block_texture_id, not_full
+from texture_loader import block_texture_id, not_full_blocks
+from biome import *
+
+
 def random_num(seed, a, b):
     random.seed(seed*(a-201)*(b**2+1))
     # print(random.random())
     return random.random()
-chunk_size_x = 32
+chunk_size_x = 16
 chunk_size_y = 64
-ground_level = 22
-terrain_height_variance = 6
-terrain_block_difference = 0.01
-def check_validity()->None:
-    if terrain_height_variance + ground_level > chunk_size_y or ground_level-terrain_height_variance<0:
-        Exception("Invalid terrain_height_variance: too high (line:11)")
+biomes = [Plains, HillyPlains]
+
+# def check_validity()->None:
+#     if terrain_height_variance + ground_level > chunk_size_y or ground_level-terrain_height_variance<0:
+#         Exception("Invalid terrain_height_variance: too high (line:11)")
 def Yislegal(y):
     return 0 < y < chunk_size_y
 
 class Chunk:
     def __init__(self):
-        self.blocks = [[0 for x in range(chunk_size_y)] for y in range(chunk_size_x)]
+        self.blocks = [[0 for _ in range(chunk_size_y)] for _ in range(chunk_size_x)]
         self.width = chunk_size_x
         self.height = chunk_size_y
+        self.biome = None
     def get_block(self,x,y):
         if x < 0 or x >= chunk_size_x or y < 0 or y >= chunk_size_y:
             return 0
@@ -35,22 +38,20 @@ class Chunk:
     def surface(self, x):
         for y in range(self.height-1, -1, -1):
             #print(y, self.get_block(x, y))
-            if not not_full[self.get_block(x, y)]:
+            if not not_full_blocks[self.get_block(x, y)]:
                 return y
         return -1
         raise("somethik's odd with worldgen (line 34 ;) )")
 
 class World:
-    def get_height(self, x, seed):  # Added self to method definition
+    def get_height(self, x):  # Added self to method definition
         #num = (perlin.perlin_noise(x, seed))
-        num = math.sin(x) + math.cos(x)#perlin.perlin(x,self.seed)*2-1#
+        num = (self.NOISE.get(x)+1)/2
+        #num = math.sin(x) + math.cos(x)#perlin.perlin(x,self.seed)*2-1#
         #num = perlin.perlin_noise(0, x, seed)
         #print(num)
-        #print("Noise:", num)
+        #print("Noise:", num)   
         return round(num, 2)
-    #
-    #   -------------- POPULATION / DECORATIONS PART ------------------
-    #
     def add_population(self, thischunk, chunk_x, seed):
         for i in range(chunk_size_x):
             #print("Trying to add sand :d") 
@@ -68,15 +69,14 @@ class World:
             #     pass
 
         return thischunk
-
-    def generate_chunk(self, chunk_x, seed, population = False):
+    def generate_chunk(self, chunk_x, population = False):
         thischunk = Chunk()
-
+        thischunk.biome = biomes[math.floor(self.CHUNK_NOISE[0].get(chunk_x) * (len(biomes)))]()
         #
         #  ------------------ TERRAIN PART ----------------
         #
         for x in range(chunk_size_x):
-            height = self.get_height((chunk_x*chunk_size_x + x)*terrain_block_difference, seed)*terrain_height_variance + ground_level
+            height = self.get_height((chunk_x*chunk_size_x + x)*thischunk.biome.terrain_block_difference)*(thischunk.biome.terrain_height_variance/2 - thischunk.biome.terrain_height_variance) + thischunk.biome.ground_level
             height = round(height)
             for y in range(height, -1, -1):
                 if y == 0:
@@ -96,9 +96,10 @@ class World:
         if population:
             # self.get_chunk(chunk_x+1,population=False)
             # self.get_chunk(chunk_x-1,population=False)
-            thischunk = self.add_population(thischunk, chunk_x, seed)
+            thischunk = self.add_population(thischunk, chunk_x, self.seed)
         return thischunk
     def get_chunk(self, x, population=True):
+        x = math.floor(x)
         #print(self.chunkneg, self.chunkpoz)
         #print(len(self.chunkneg) + len(self.chunkpoz))
         #x = x // chunk_size_x
@@ -115,7 +116,7 @@ class World:
             while x + 1 < len(self.chunkneg):
                 #print("WHILE", len(self.chunkneg))
                 self.chunkneg.append(None)
-            self.chunkneg.append(self.generate_chunk(-x-1, self.seed, population=population))  # Added seed
+            self.chunkneg.append(self.generate_chunk(-x-1, population=population))  # Added seed
             return self.chunkneg[x]
         else:
             #print("Index",x)
@@ -126,7 +127,7 @@ class World:
             while x + 1 < len(self.chunkpoz):
                 #print("WHILE", len(self.chunkneg))
                 self.chunkpoz.append(None)
-            self.chunkpoz.append(self.generate_chunk(x, self.seed, population=population))  # Added seed
+            self.chunkpoz.append(self.generate_chunk(x, population=population))  # Added seed
             #print(x, print(self.chunkpoz))
             return self.chunkpoz[x]
     def set_block(self, x, y, id):
@@ -149,22 +150,27 @@ class World:
         return self.get_chunk(chunkX).get_block(x, y)
     def find_player(self, name):
         try:
-            return self.player_names.index(name)
+            return self.nickanmes.index(name)
         except:
             raise gameExceptions.PlayerNotExist()
     def add_player(self, name, x, y, angle):
-        if name in self.player_names:
+        if name in self.nicknames:
             raise gameExceptions.PlayerAlreadyExcist()
-        self.player_names.append(name)
-        self.player.append(defaultPlayer(x, y, angle))
-
+        self.nickanmes.append(name)
+        self.players.append(defaultPlayer(x, y, angle))
+    def remove_player(self, name:str):
+        index = self.find_player(name)
+        self.nickanmes.pop(index)
+        self.players.pop(index)
     def __init__(self, not_pregen = False, gamemode=0):
         self.respawn_anchor = None
         self.seed = random.randint(0, 99999999)
+        self.NOISE = perlin.PerlinNoise(self.seed, frequency=10)   
+        self.CHUNK_NOISE = [perlin.PerlinNoise(self.seed, frequency=0.5, range_=[0,1]), perlin.PerlinNoise(self.seed+2, frequency=1, range_=[0,1])]
         self.chunkpoz = []
         self.chunkneg = []
         if not not_pregen:
-            self.chunkpoz.append(self.generate_chunk(0, self.seed, population=True))
+            self.chunkpoz.append(self.generate_chunk(0, population=True))
             self.world_spawn = Point2d(0, self.chunkpoz[0].surface(0)+1)
         else:
             self.world_spawn = Point2d(0, 0)
@@ -180,6 +186,7 @@ class World:
         self.main_player = defaultPlayer(self.world_spawn.x, self.world_spawn.y, 0, self.player_sizex, self.player_sizey)
         self.player_color = (0, 20, 255)  # Gray color
         self.players = []#, defaultPlayer(self, 0, self.player_sizex, self.player_sizey)]
+        self.nicknames = []
         #self.test_player = defaultPlayer(self, 0, self.player_sizex, self.player_sizey, texture_storage.load_player_textures())
         # self.churrent_chunkX = 0
         # self.loadedbaseX = -chunk_size_x

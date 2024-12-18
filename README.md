@@ -31,6 +31,7 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 <tr><td>Pause</td><td>Esc</td></tr>
 <tr><td>Select item from hotbar</td><td>Middle mouse button (scrolling)</td></tr>
 <tr><td>F1</td><td>Hide UI</td></tr>
+<tr><td>F3</td><td>Toogle Debug mode</td></tr>
 </table>
 
 ## Features:

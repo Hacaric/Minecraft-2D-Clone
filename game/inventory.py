@@ -1,3 +1,4 @@
+from texture_loader import item_names
 class Inventory:
     def __init__(self):
         self.main_inventory = [None] * 27
@@ -22,12 +23,13 @@ class Inventory:
         return self.get_slot(x%9, x//9)
 
     def set_slot(self, x, y, item_id):
+
         if y == 0 and 0 <= x < 9:
-            self.hotbar[x] = item_id
+            self.hotbar[x] = item_names[item_id]
         elif y == 4 and 0 <= x < 4:
-            self.armor_slots[x] = item_id
+            self.armor_slots[x] = item_names[item_id]
         elif 1 <= y < 4 and 0 <= x < 9:
             index = (y - 1) * 9 + x
-            self.main_inventory[index] = item_id
+            self.main_inventory[index] = item_names[item_id]
         else:
             raise ValueError("Invalid slot coordinates.", x, y)

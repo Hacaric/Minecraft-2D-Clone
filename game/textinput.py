@@ -27,7 +27,7 @@ class TextInput:
                 return True
         return False
 
-    def render(self, screen:pygame.Surface, events, collision:list[int, int, bool] = None, return_text = False):
+    def render(self, screen:pygame.Surface, events, collision:list[int, int, bool] = None, return_text = False, ignore_input = False):
         tick = pygame.time.get_ticks()
         if collision != None:
             mouse_x, mouse_y, mouse_click = collision
@@ -38,12 +38,12 @@ class TextInput:
         #print(tick)
         if self.active:
             for event in events:
-                if event.type == pygame.KEYDOWN:
+                if event.type == pygame.KEYDOWN and not ignore_input:
                     if event.key == pygame.K_RETURN:
                         copied_text = self.text
                         if self.clear_on_enter:
                             self.text = ""
-                        active = False
+                        self.active = False
                         return copied_text
                     elif event.key == pygame.K_BACKSPACE: 
                         # get text input from 0 to -1 i.e. end. 
@@ -63,19 +63,16 @@ class TextInput:
             else:
                 text_surface = font.render(self.text[-self.max_chars:], True, self.default_font_colour)#-int(self.width/self.font_size)*2
         else:
-            if self.active:
-                if tick % 1000 > 500:
-                    text_surface = font.render("|", True, self.default_font_colour)
+            if self.active and tick % 1000 > 500:
+                text_surface = font.render("|", True, self.default_font_colour)
             else:
                 text_surface = font.render(self.placeholder[:self.max_chars-1], True, self.default_placeholder_font_colour)
             # if len(self.text) < self.max_chars:
         #     adjustion = 0
         # else:
         #     adjustion = 0#((len(self.text)-self.max_chars)*self.font_size/3)
-        try:
-            screen.blit(text_surface, (self.x + 5, self.y + 5))
-        except UnboundLocalError:
-            pass
+        
+        screen.blit(text_surface, (self.x + 5, self.y + 5))
         if return_text:
             return self.text
     

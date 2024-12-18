@@ -17,10 +17,12 @@ import time
 import threading
 import gameExceptions
 from textinput import TextInput, margin
-#import socket_.client as socket_client
-#import socket
+import socket_.client as socket_client
+import socket
 running = True
-framerate = 30
+defaultFramerate = 30
+tickRate = 30
+framerate = defaultFramerate
 multiplayer_mode = False
 debug_mode:bool = False
 # Initialize Pygame
@@ -37,13 +39,15 @@ pygame.display.set_caption("Minecraft 2D")
 if True: #DEFINITION OF VARIABLES
     block_size_add = 1
 
-    cursor, textures, block_sounds, item_textures, player_textures, gui_textures = load_textures_and_sounds(block_size, block_size_add)
+    #section:graphic
+    cursor, textures, block_sounds, item_textures, player_textures, gui_textures, health_bar_textures = load_textures_and_sounds(block_size, block_size_add)
     gui_textures["main_manu_background"] = pygame.transform.scale(gui_textures["main_manu_background"],(width, height))
     # Set up the square
     square_size = 200
     square_x = (width - square_size) // 2
     square_y = (height - square_size) // 2
 
+    #section:keys
     key_dict = keys.keydict
 
     #section:camera
@@ -56,7 +60,7 @@ if True: #DEFINITION OF VARIABLES
     update_frame_once = False
 
     #section:world
-    overowrld = None
+    overworld = None
     tick = 0
     current_world_name = None
 
@@ -76,6 +80,7 @@ if True: #DEFINITION OF VARIABLES
         "update_world_menu_oppened": False,
         "multiplayer_menu_oppened": False,
         "create_world_menu_oppened": False,
+        "chat_input_oppened": False,
         "inventory_oppened": False
     }
     menus["main_menu_oppened"] = True
@@ -89,6 +94,7 @@ if True: #DEFINITION OF VARIABLES
     # world_menu_oppened = False
 
     esc_delay = False
+    t_key_delay = False
     hide_ui = False
     #section:hotbar
     selected_in_hotbar = 0
@@ -96,6 +102,9 @@ if True: #DEFINITION OF VARIABLES
     hotbar_positions = []
     for i in range(9):
         hotbar_positions.append(width/2-360+(80*i))
+
+    #section:tick
+    BREAK_BLOCK = False
 
     #section:gui
     quit_button =               Button(width // 2 - 200,    height - 200,  400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), "Quit")
@@ -112,8 +121,12 @@ if True: #DEFINITION OF VARIABLES
     server_ip_input =           TextInput(width // 2 - 200,    270,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), placeholder="Server ip:port", text="127.0.0.1:5555", font_size=35, maxlen = 15)
     nickname_input =            TextInput(width // 2 - 200,    340,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), placeholder="Nickname", font_size=35, maxlen = 15)
     world_name_input =          TextInput(width // 2 - 200,    270,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), placeholder="World name", font_size=35, maxlen = 15)
+    chat_input =                TextInput(10,   hotbar_height,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), placeholder="", font_size=35, maxlen = 15)
     game_mode_switch =          SwitchButton(width // 2 - 200, 340,        190, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), ["Creative", "Survival"], return_data = [0,1])
     debug_mode_switch =         SwitchButton(width // 2 - 200, 340,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), ["Debug mode on", "Debug mode off"], return_data = [True,False], current_state=0 if debug_mode else 1)
+
+    #section:ui
+    ui_colour = (0,0,0)#(255, 255, 255)
 
     #section:player
     gravity = 0.05
@@ -149,6 +162,7 @@ if True: #DEFINITION OF VARIABLES
     chat_history = []
     chat_history_timer = []
     chat_history_timer_max_seconds = 10
+    chat_line_width = 40
     chat_text_margin = margin(10, 5, 5, 5)
     chat_background_margin = margin(0, 5, 10, 5)
     chat_blur_out_time_seconds = chat_history_timer_max_seconds - 5
@@ -157,15 +171,21 @@ if True: #DEFINITION OF VARIABLES
     timer = time.time()
     world_auto_save_time_seconds = 120
     timer_start = int(time.time()%world_auto_save_time_seconds)
-def chat_log(*text):
+def chat_log(*text, recursion = False):
     for i in text:
-        if not text:
+        if not i:
             continue
+        if not recursion:
+            i = ">> " + i
+        if len(i) > chat_line_width:
+            while len(i) > chat_line_width:
+                chat_log(i[:chat_line_width], recursion = True)
+                i = i[chat_line_width:]
         chat_history_timer.append(timer)
         chat_history.append(i)
 def render_chat(screen):
     for i in range(len(chat_history)-1, -1, -1):
-        if timer - chat_history_timer[i] >= chat_history_timer_max_seconds:
+        if ((not menus["chat_input_oppened"]) and i < 20) and timer - chat_history_timer[i] >= chat_history_timer_max_seconds:
             #print("chat_history_timer[i]", chat_history_timer[i])
             continue
         elif False and timer - chat_history_timer[i] >= chat_blur_out_time_seconds:
@@ -177,78 +197,72 @@ def render_chat(screen):
             screen.blit(text_surface, (chat_text_margin.left, hotbar_height - 50 - (len(chat_history)-i)*(30 + chat_text_margin.top + chat_text_margin.bottom) + chat_text_margin.top))
         else:
             text_surface = font.render(str(chat_history[i]), True, (0, 0, 0))
-            chat_background_surface = pygame.Surface((text_surface.get_size()[0] + chat_background_margin.left + chat_background_margin.right, text_surface.get_size()[1] + chat_background_margin.top + chat_background_margin.bottom), pygame.SRCALPHA)
+            chat_background_surface = pygame.Surface((max(text_surface.get_size()[0] + chat_background_margin.left + chat_background_margin.right, 50), text_surface.get_size()[1] + chat_background_margin.top + chat_background_margin.bottom), pygame.SRCALPHA)
+            #chat_background_surface = pygame.Surface((350, text_surface.get_size()[1] + chat_background_margin.top + chat_background_margin.bottom), pygame.SRCALPHA)
             chat_background_surface.fill((0, 0, 0, 128))
             screen.blit(chat_background_surface, (chat_background_margin.left, hotbar_height - 50 - (len(chat_history)-i)*(30 + chat_background_margin.top + chat_background_margin.bottom)))
             screen.blit(text_surface, (chat_text_margin.left, hotbar_height - 50 - (len(chat_history)-i)*(30 + chat_text_margin.top + chat_text_margin.bottom) + chat_text_margin.top))
 def render_player(player, screen, camera, mouse_x, mouse_y, player_movement_leg_angle, is_game_paused_=False, rotate_player=False)->None:
-        #print("renderding player", player.x, player.y)
-        #print("type of movement angle (player:25)", type(player_movement_leg_angle))
-        # import pygame
-        # import math
+    """
+    This function was optimized by Codeium AI
+    Render player in 2D on the screen.
 
-        # # Render body
-        # body_texture = pygame.transform.scale(player_textures["body"], (player.block_size*4, player.block_size*4))
-        # body_rect = body_texture.get_rect(center=(player.x + player.sizex/2, player.y + player.sizey/2))
-        # screen.blit(body_texture, body_rect)
-
-        # # Get mouse position
-        # mouse_x, mouse_y = pygame.mouse.get_pos()
-
-        # # Calculate angle between player and mouse
-        # mouse_offset_x = mouse_x - (player.x + player.sizex / 2)
-        # dy = mouse_y - (player.y + player.sizey / 2)
-        # angle = math.atan2(dy, mouse_offset_x) % (2*math.pi)
-
-        # # Determine which direction the head should face
-        # if 0 <= angle <= math.pi:
-        #     head_texture = player_textures["head_r"]
-        # elif math.pi < angle < 2*math.pi:
-        #     head_texture = player_textures["head_l"]
-        # else:
-        #     print("ERROR:", angle)
-        # mouse_x, mouse_y = pygame.mouse.get_pos()
+    :param player: Player object to render
+    :param screen: Pygame screen object
+    :param camera: 2D camera object
+    :param mouse_x: Mouse x position
+    :param mouse_y: Mouse y position
+    :param player_movement_leg_angle: Angle of player leg
+    :param is_game_paused_: If game is paused
+    :param rotate_player: If player head should be rotated
+    """
 
     # Calculate angle between player and mouse
     mouse_offset_x = mouse_x - get_screen_pos(camera, Point2d(player.x + player.sizex / 2, player.y + player.sizey / 2))[0]
     mouse_offset_y = mouse_y - get_screen_pos(camera, Point2d(player.x + player.sizex / 2, player.y + player.sizey / 2))[1]
     mouse_offset_y = -mouse_offset_y
-    #print("rendering on ", mouse_offset_x, mouse_offset_y)
+
+    # Calculate player angle
     if not (is_game_paused_) and rotate_player:
         player.angle = math.atan2(mouse_offset_y, mouse_offset_x)
-    #print(math.degrees(angle))
-    if -math.pi/2 < player.angle < math.pi/2:
-        t = "head_r"
-    else:
-        t = "head_l"
-    original_texture = pygame.transform.scale(player_textures[t], (block_size*0.5, block_size*0.5))
-    body_texture = pygame.transform.rotate(original_texture, math.degrees(player.angle))
 
+    # Determine which direction the head should face
+    if -math.pi/2 < player.angle < math.pi/2:
+        head_texture_name = "head_r"
+    else:
+        head_texture_name = "head_l"
+
+    # Get the head texture
+    head_texture = player_textures[head_texture_name]
+
+    # Calculate the offset for the head texture
+    original_texture = pygame.transform.scale(head_texture, (block_size*0.5, block_size*0.5))
     if -math.pi/2 < player.angle < math.pi/2:
         offset = pygame.math.Vector2(0, -original_texture.get_height() / 2).rotate(-math.degrees(player.angle))
     else:
         offset = pygame.math.Vector2(0, original_texture.get_height() / 2).rotate(-math.degrees(player.angle))
-    #print(angle)
+
+    # Render the head texture
+    body_texture = pygame.transform.rotate(original_texture, math.degrees(player.angle))
     body_rect = body_texture.get_rect(center=(get_screen_pos(camera, Point2d(player.x - 0.16, player.y))[0] + offset.x, get_screen_pos(camera, Point2d(player.x, player.y + 0.6))[1] + offset.y))
     screen.blit(body_texture, body_rect)
-    if -math.pi/2 < player.angle < math.pi/2:
-        leg_texture = player_textures["leg_l"]
-    else:
-        leg_texture = player_textures["leg_r"]
+
+    # Render the body texture
     body_texture = pygame.transform.scale(player_textures["body"], (block_size*0.3, block_size))
     body_rect = body_texture.get_rect(center=(get_screen_pos(camera, Point2d(player.x - 0.3/2, player.y))[0], get_screen_pos(camera, Point2d(player.x, player.y + 0.1))[1]))
     screen.blit(body_texture, body_rect)
+
+    # Render the leg textures
+    leg_texture = player_textures["leg_r"] if -math.pi/2 < player.angle < math.pi/2 else player_textures["leg_l"]
     body_texture = pygame.transform.scale(leg_texture, (block_size * 0.29, block_size * 0.8))
     rotated_texture = pygame.transform.rotate(body_texture, player_movement_leg_angle)
     rotation_point = get_screen_pos(camera, Point2d(player.x - 0.3 / 2, player.y - 0.7))
     rotated_rect = rotated_texture.get_rect(center=(rotation_point[0] + (math.sin(math.radians(player_movement_leg_angle/2 + 90))*2*math.sin(math.radians(player_movement_leg_angle/2))*block_size*0.29) + player.isnegative(player_movement_leg_angle), rotation_point[1]))
     screen.blit(rotated_texture, rotated_rect)
-    body_texture = pygame.transform.scale(leg_texture, (block_size * 0.29, block_size * 0.8))
     rotated_texture = pygame.transform.rotate(body_texture, -player_movement_leg_angle)
-    rotation_point = get_screen_pos(camera, Point2d(player.x - 0.3 / 2, player.y - 0.7))
     rotated_rect = rotated_texture.get_rect(center=(rotation_point[0] + (math.sin(math.radians(-player_movement_leg_angle/2 + 90))*2*math.sin(math.radians(-player_movement_leg_angle/2))*block_size*0.29) + player.isnegative(player_movement_leg_angle), rotation_point[1]))
     screen.blit(rotated_texture, rotated_rect)
-def save_world(filename=None, overwrite = False):
+def save_world(filename=None, overwrite = True):
     if current_world_name:
         world_files.save_data({"version":-1,"gamemode":overworld.gamemode,"playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)}, overwrite=overwrite,filename = current_world_name)
         return
@@ -464,7 +478,7 @@ def try_place_block(world, x, y, id):
             send_to_server("01", x, y, id)
 #-----------BLOCK PLACEMENT END------------
 def handle_events():
-    global events, running, mouse_l, mouse_r_click, mouse_r, selected_in_hotbar, ain_menu_oppened, esc_delay, menus
+    global events, running, mouse_l, t_key_delay, mouse_r_click, mouse_r, selected_in_hotbar, ain_menu_oppened, esc_delay, menus
     events = pygame.event.get()
     for event in events:
         if event.type == pygame.QUIT:
@@ -495,21 +509,35 @@ def handle_events():
             elif event.button == 3:
                 mouse_r = False
         if key_dict[pygame.K_ESCAPE]:
-            if not esc_delay:
+            if not (esc_delay or overworld is None):
                 if menus["ingame_main_menu_oppened"]:
                     menus["ingame_main_menu_oppened"] = False
                 elif menus["options_menu_oppened"]:
                     menus["options_menu_oppened"] = False
                     menus["ingame_main_menu_oppened"] = True
+                elif menus["chat_input_oppened"]:
+                    open_menu("None")
                 else:
                     menus["ingame_main_menu_oppened"] = True
                 esc_delay = True
-        else:
+        elif esc_delay:
             esc_delay = False
+        if key_dict[pygame.K_t]:
+            if (not menus["chat_input_oppened"]) and (not t_key_delay):
+                menus["chat_input_oppened"] = True
+                t_key_delay = True
+                events[events.index(event)] = pygame.event.Event(pygame.NOEVENT, {})
+        elif t_key_delay:
+            t_key_delay = False
     if key_dict[pygame.K_F1]:
         global hide_ui
         hide_ui = not hide_ui
         key_dict[pygame.K_F1] = False 
+    if key_dict[pygame.K_F3]:
+        global debug_mode
+        debug_mode = not debug_mode
+        debug_mode_switch.current_state = True
+        key_dict[pygame.K_F3] = False 
     if key_dict[pygame.K_SEMICOLON]:
         running = False
 def handle_player_movement():
@@ -541,19 +569,18 @@ def handle_player_movement():
         overworld.main_player.y += 0
 
 
-    if True:
-        if on_ground(overworld.main_player.x, overworld.main_player.y):
-            if key_dict[pygame.K_w]:
-                velocityY = jump_affect
-            else:
-                velocityY = 0
+    if on_ground(overworld.main_player.x, overworld.main_player.y):
+        if key_dict[pygame.K_w]:
+            velocityY = jump_affect
         else:
-            velocityY += (gravity_max-velocityY)*gravity
-        if not isfree(overworld.main_player.x, overworld.main_player.y+velocityY, overworld.main_player.sizex, overworld.main_player.sizey):
-            velocityY = velocityY/2
-        velocityY = round(velocityY, 2)
-        if isfree(overworld.main_player.x, overworld.main_player.y + velocityY, overworld.main_player.sizex, overworld.main_player.sizey):
-            overworld.main_player.y += velocityY
+            velocityY = 0
+    else:
+        velocityY += (gravity_max-velocityY)*gravity
+    if not isfree(overworld.main_player.x, overworld.main_player.y+velocityY, overworld.main_player.sizex, overworld.main_player.sizey):
+        velocityY = velocityY/2
+    velocityY = round(velocityY, 2)
+    if isfree(overworld.main_player.x, overworld.main_player.y + velocityY, overworld.main_player.sizex, overworld.main_player.sizey):
+        overworld.main_player.y += velocityY
     if overworld.main_player.y < -10:
         overworld.main_player.damage(1)
     if multiplayer_mode and (overworld.main_player.x != last_player_pos[0] or  overworld.main_player.y != last_player_pos[1] or overworld.main_player.angle != last_player_pos[2]):
@@ -658,12 +685,12 @@ def render_players():
     # screen.blit(textures[5], (player_screen_pos[0], player_screen_pos[1]+overworld.main_player.sizey), (0, 0, block_size/2,block_size/2))
 def break_block(x, y):
     if overworld.get_block(cursor_block_x, cursor_block_y) != block_texture_id["air"]:
-        get_sound(block_names[overworld.getblock(x,y)]).play()
         if multiplayer_mode:
             send_to_server("02", x, y)
         overworld.set_block(cursor_block_x, cursor_block_y, block_texture_id["air"])
+def render_cursor():pass
 def handle_cursor_and_block_breaking(render_sqare):
-    global current_breaking_time, breaking_pozition
+    global current_breaking_time, breaking_pozition, cursor_block_x, cursor_block_y, BREAK_BLOCK
     #print(menus["ingame_main_menu_oppened"])
     # print("Hi thre, im handling cursor O/")
     if is_game_paused():
@@ -677,18 +704,14 @@ def handle_cursor_and_block_breaking(render_sqare):
         cursor_texture_id = get_cursor_state_and_handle_block_breaking(get_block(cursor_block_x, cursor_block_y), current_breaking_time)
         if cursor_texture_id >= 0:
             if cursor_texture_id == 100:
-                break_block(cursor_block_x, cursor_block_y)
+                BREAK_BLOCK = True
+                get_sound(block_names[overworld.getblock(cursor_block_x,cursor_block_y)]).play()
                 current_breaking_time = 0
                 cursor_texture_id = 0
                 #pygame.mixer.Sound("soung.mp3").play()
             cursor_screen_pos = get_screen_pos(camera, Point2d(cursor_block_x, cursor_block_y))
             screen.blit(cursor[cursor_texture_id], (cursor_screen_pos[0], cursor_screen_pos[1]), (0, 0, block_size+1, block_size+1))
         
-        if mouse_r:
-            try:
-                try_place_block(overworld, cursor_block_x, cursor_block_y, block_texture_id[inventory.get_slot(selected_in_hotbar, 0)])
-            except:
-                pass
         if mouse_l and (breaking_pozition.x == cursor_block_x and breaking_pozition.y == cursor_block_y):
             current_breaking_time += 1
             pointing_at_block = overworld.getblock(cursor_block_x, cursor_block_y)
@@ -703,21 +726,77 @@ def handle_cursor_and_block_breaking(render_sqare):
         return cursor_block_x, cursor_block_y
     else:
         return 0, 0
-
+def execute_command(text):
+    global overworld, framerate
+    if text[0] == "/":
+        command = text.split(" ")
+        match command[0]:
+            case "/tp":
+                if len(command) == 3:
+                    try:
+                        overworld.main_player.x = float(command[1])
+                        overworld.main_player.y = float(command[2])
+                        return f"Teleporting player to x: {command[1]}, y: {command[2]}"
+                    except Exception as e:
+                        return f"Invalid coordinates to teleport: {command[1]}, {command[2]}, {e}"
+                else:
+                    return f"Too few arguments to teleport: {command[1]}, {command[2]}"
+            case "/setblock":
+                if len(command) == 4:
+                    try:
+                        overworld.set_block(int(command[1]), int(command[2]), int(command[3]))
+                        return f"Set block at x: {command[1]}, y: {command[2]} to {command[3]}"
+                    except:
+                        return f"Invalid coordinates to set block or invvalid block type: x:{command[1]}, y:{command[2]}, block_type:{command[3]}"
+                else:
+                    return f"Too few arguments to set block: {command[1]}, {command[2]}"
+            case "/setslot":
+                if len(command) == 3:
+                    try:
+                        inventory.set_slot(int(command[1]), 0, int(command[2]))
+                        return f"Set hotbar slot {command[1]} to {command[2]}"
+                    except:
+                        return f"Invalid slot or invvalid block type: {command[1]}, {command[2]}"
+                else:
+                    return f"Too few arguments to set hotbar slot: {command[1]}, {command[2]}"
+            case "/crash":
+                save_world()
+                raise Exception("Crash command executed")
+            case "/fps":
+                try:
+                    if len(command) == 2:
+                        if command[1] == "d" or command[1] == "default":
+                            framerate = defaultFramerate
+                            return f"Setting framerate to default: {defaultFramerate}"
+                        if int(command[1]) > 2:
+                            framerate = int(command[1])
+                        else:
+                            return f"Too low framerate: {command[1]}, requied 3 or more."
+                    else:
+                        return "Too few arguments."
+                except Exception as e:
+                    return f"Error while processing message: {e}"
+            case _:
+                return f"Unknown command: {command[0]}"
+    else:
+        return text
 def render_ui(cursor_block_x:int, cursor_block_y:int):
     coordinates_text = f"X: {overworld.main_player.x:.2f}, Y: {overworld.main_player.y:.2f}"
-    text_surface = font.render(coordinates_text, True, (255, 255, 255))
+    text_surface = font.render(coordinates_text, True, ui_colour)
     screen.blit(text_surface, (10, 10))
 
     fps = clock.get_fps()
     fps_text = f"FPS: {fps:.2f}"
-    fps_surface = font.render(fps_text, True, (255, 255, 255))
-    if debug_mode and len(overworld.chunkpoz) + len(overworld.chunkneg) > 0:
-        debug_text = f"Debug: \n Biome: {type(overworld.get_chunk(overworld.main_player.x//chunk_size_x).biome)}"
-        debug_surface = font.render(debug_text, True, (255, 255, 255))
-        screen.blit(debug_surface, (20, 100))
-
+    fps_surface = font.render(fps_text, True, ui_colour)
     screen.blit(fps_surface, (10, 50))
+    if debug_mode and len(overworld.chunkpoz) + len(overworld.chunkneg) > 0:
+        debug_text = f"Debug: \nBiome: {type(overworld.get_chunk(overworld.main_player.x//chunk_size_x).biome)}\nMaxFps: {defaultFramerate}"
+        y_offset = 80
+        for line in debug_text.split('\n'):
+            debug_surface = font.render(line, True, ui_colour)
+            screen.blit(debug_surface, (10, y_offset))
+            y_offset += 30  
+
     screen.blit(gui_textures["hotbar"], [hotbar_positions[0], height - 90])
     for i in range(9):
         item = inventory.get_slot(i, 0)
@@ -729,109 +808,81 @@ def render_ui(cursor_block_x:int, cursor_block_y:int):
                 print("Quitting!")
                 global running
                 running = False
+    if overworld.main_player.gamemode == 1:
+        screen.blit(health_bar_textures[f"health{overworld.main_player.health}"], [hotbar_positions[0], hotbar_height - 48])
     screen.blit(gui_textures["selected"], [hotbar_positions[selected_in_hotbar] - 4, height - 90 - 4])
-    # render_chat(screen)
+    render_chat(screen)
     
 def set_world(world):
     global overworld
     overworld = world
-
-def render_gui():
-
+def check_gui_interaction():
     global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_r_click, update_frame_once, current_world_name, debug_mode
-    
+
     mouse_x, mouse_y = pygame.mouse.get_pos()
     if menus["ingame_main_menu_oppened"]:
-        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 200))
-        screen.blit(overlay, (0, 0))  # Add a semi-transparent black overlay
-        # if multiplayer_menu_button.render(screen, mouse_r_click):
-        #     open_menu("multiplayer_menu_oppened")
-        if back_button.render(screen, mouse_r_click):
+        if back_button.is_pressed:
             open_menu(None)
-        if quit_button.render(screen, mouse_r_click):
+        if quit_button.is_pressed:
             if multiplayer_mode:
                 multiplayer_mode = False
                 client_sock_stream.close()
                 client_dgram.close()
             else:
                 save_world(overwrite=True)
+            overworld = None
             open_menu("main_menu_oppened")
-        if save_world_button.render(screen, mouse_r_click, text="Save") and not multiplayer_mode:
+        if save_world_button.is_pressed and not multiplayer_mode:
             #open_menu("menus["create_world_menu_oppened"]")
             save_world(overwrite=True)
             #world_files.save_data({"version":-1,"gamemode":overworld.gamemode, "playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)})
-        if options_button.render(screen, mouse_r_click):
+        if options_button.is_pressed:
             open_menu("options_menu_oppened")
-        # if file_options_button.render(screen, mouse_r_click):
-        #     open_menu("menus["file_menu_oppened"]")
     elif menus["main_menu_oppened"]:
-        screen.blit(gui_textures["main_manu_background"], [0,0])
-        #COMING SOON
-        # if multiplayer_menu_button.render(screen, mouse_r_click):
-        #     open_menu("multiplayer_menu_oppened")  #TODO - work in progress :D
-        if quit_button.render(screen, mouse_r_click):
-            #print("sry, im exiting")
+        if quit_button.is_pressed:
             running = False
-        if new_world_button.render(screen, mouse_r_click):
+        if new_world_button.is_pressed:
             open_menu("create_world_menu_oppened", notraise=True)
-        if load_world_button.render(screen, mouse_r_click, y=340, width=400):
+        if load_world_button.is_pressed:
             open_menu("open_world_menu_oppened")
-            #menus["main_menu_oppened"] = True
-        #test_switch.render(screen, mouse_r_click)
     elif menus["options_menu_oppened"]:
-        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 200))
-        screen.blit(overlay, (0, 0))  # Add a semi-transparent black overlay
-        x = debug_mode_switch.render(screen, mouse_r_click)
+        x = debug_mode_switch.is_pressed
         if x[0]:
             debug_mode = x[1]
-        if done_back_to_main_button.render(screen, mouse_r_click):
+        if done_back_to_main_button.is_pressed:
             open_menu("ingame_main_menu_oppened")
     elif menus["create_world_menu_oppened"]:
-        screen.blit(gui_textures["main_manu_background"], [0,0])
-        name = world_name_input.render(screen, events, [mouse_x, mouse_y, mouse_r_click], return_text=True)
-        game_mode_switch.render(screen, mouse_r_click)[1]
-        if done_back_to_main_button.render(screen, mouse_r_click, x=width // 2 + 10, width=190):
+        name = world_name_input.text
+        if done_back_to_main_button.is_pressed:
             if name != "":
                 world_name_input.placeholder = "World name"
                 world_name_input.text = ""
-                global overworld
                 overworld = World()
                 overworld.gamemode = game_mode_switch.getstate()
-                save_world(filename=name)
+                save_world(filename=name, overwrite=False)
                 #world_files.save_data({"version":-1,"gamemode":str(overworld.gamemode),"playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)}, filename=name)
                 open_menu(None)
                 pygame.mouse.set_pos(width // 2, height // 2)
-                raise gameExceptions.MenuClosed()
             else:
                 world_name_input.placeholder = "Please enter"
-        if back_button.render(screen, mouse_r_click, x=width // 2 - 200, width=190, y=height - 200, text="Back"):
+        if back_button.is_pressed:
             world_name_input.placeholder = "World name"
             world_name_input.text = ""
             open_menu("main_menu_oppened")
     elif menus["file_menu_oppened"]:
-        if save_world_button.render(screen, mouse_r_click):
+        if save_world_button.is_pressed:
             if current_world_name == None:
-                save_world()
-                #world_files.save_data({"version":-1,"gamemode":overworld.gamemode, "playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)})
+                save_world(overwrite=False)
             else:
                 save_world(filename=current_world_name, overwrite=True)
-                #world_files.save_data({"version":-1,"gamemode":overworld.gamemode, "playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)}, filename=current_world_name, filetype="", overwrite=True)
-            #print("World saved")
-        elif load_world_button.render(screen, mouse_r_click):
+        elif load_world_button.is_pressed:
             open_menu("open_world_menu_oppened")
-        elif False and update_world_button.render(screen, mouse_r_click):
-            open_menu("update_world_menu_oppened")
-            #load_world(world_files.load_data("new_world_button.json"))
-        elif done_back_to_main_button.render(screen, mouse_r_click):
+        elif done_back_to_main_button.is_pressed:
             open_menu("ingame_main_menu_oppened")
     elif menus["multiplayer_menu_oppened"]:
-        screen.blit(gui_textures["main_manu_background"], [0,0])
-        #collision_address_button = get_collision(mouse_x, mouse_y, mouse_r_click, [server_ip_input.x, server_ip_input.y, server_ip_input.width, server_ip_input.height])
-        server_address = server_ip_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_r_click])
-        nickname = nickname_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_r_click])
-        if done_back_to_main_button.render(screen, mouse_r_click, width=190, x=400):
+        if done_back_to_main_button.is_pressed:
+            server_address = server_ip_input.text
+            nickname = nickname_input.text
             global server_ip
             print("Server IP:", server_ip_input.text)
             server_ip = server_address
@@ -847,12 +898,99 @@ def render_gui():
             except gameExceptions.FailedConnectingServer as e:
                 print("Error connecting server: ", e, ";")
             #print("Back to main menu")
-        if back_button.render(screen, mouse_r_click, text="Cancel", width=190, x=200, y=height - 200):
+        if back_button.is_pressed:
             open_menu("main_menu_oppened")
     elif menus["open_world_menu_oppened"]:
-        screen.blit(gui_textures["main_manu_background"], [0,0])
-        if done_back_to_main_button.render(screen,mouse_r_click):
+        if done_back_to_main_button.is_pressed:
             open_menu("main_menu_oppened")
+        world_files_list = list_world_files()
+        for i in range(len(world_files_list)):
+            try:
+                if world_files_list[i][-5:] != ".json":
+                    continue
+            except:
+                continue
+            if i > 4:
+                if load_world_button.is_pressed:
+                    try:
+                        print("Loading world: ", world_files_list[i])
+                        load_world(world_files.load_data(world_files_list[i]))
+                        current_world_name = world_files_list[i]
+                        menus["main_menu_oppened"] = False
+                        menus["open_world_menu_oppened"] = False
+                        if not menus["main_menu_oppened"]:
+                            update_frame_once = True
+                        pygame.mouse.set_pos([width/2,height/2])
+                    except:
+                        print("Error loading world", world_files_list[i])
+            else:
+                if load_world_button.is_pressed:
+                    print("Loading world: ", world_files_list[i])
+                    try:
+                        load_world(world_files.load_data(world_files_list[i]))
+                        current_world_name = world_files_list[i]
+                        menus["main_menu_oppened"] = False
+                        menus["open_world_menu_oppened"] = False
+                        if not menus["main_menu_oppened"]:
+                            update_frame_once = True
+                        pygame.mouse.set_pos([width/2,height/2])
+                    except:
+                        print("Error loading world", world_files_list[i])
+    elif menus["chat_input_oppened"]:
+        chat_input.active = True
+        text = chat_input.text
+        if text:
+            chat_log(execute_command(text))
+            chat_input.text = ""
+            open_menu("None")
+        elif text == "":
+            open_menu("None")
+def render_gui():
+
+    global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_r_click, update_frame_once, current_world_name, debug_mode
+
+    if menus["ingame_main_menu_oppened"]:
+        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        screen.blit(overlay, (0, 0))
+        back_button.render(screen, mouse_r_click)
+        quit_button.render(screen, mouse_r_click)
+        save_world_button.render(screen, mouse_r_click, text="Save")
+        options_button.render(screen, mouse_r_click)
+    elif menus["main_menu_oppened"]:
+        screen.blit(gui_textures["main_manu_background"], [0,0])
+        #COMING SOON
+        # if multiplayer_menu_button.render(screen, mouse_r_click):
+        #     open_menu("multiplayer_menu_oppened")  #TODO - work in progress :D
+        quit_button.render(screen, mouse_r_click)
+        new_world_button.render(screen, mouse_r_click)
+        load_world_button.render(screen, mouse_r_click, y=340, width=400)
+    elif menus["options_menu_oppened"]:
+        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        screen.blit(overlay, (0, 0))
+        debug_mode_switch.render(screen, mouse_r_click)
+        done_back_to_main_button.render(screen, mouse_r_click)
+    elif menus["create_world_menu_oppened"]:
+        screen.blit(gui_textures["main_manu_background"], [0,0])
+        world_name_input.render(screen, events, [mouse_x, mouse_y, mouse_r_click], return_text=True)
+        game_mode_switch.render(screen, mouse_r_click)[1]
+        done_back_to_main_button.render(screen, mouse_r_click, x=width // 2 + 10, width=190)
+        back_button.render(screen, mouse_r_click, x=width // 2 - 200, width=190, y=height - 200, text="Back")
+    elif menus["file_menu_oppened"]:
+        save_world_button.render(screen, mouse_r_click)
+        load_world_button.render(screen, mouse_r_click)
+        update_world_button.render(screen, mouse_r_click)
+        done_back_to_main_button.render(screen, mouse_r_click)
+    elif menus["multiplayer_menu_oppened"]:
+        screen.blit(gui_textures["main_manu_background"], [0,0])
+        server_ip_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_r_click])
+        nickname_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_r_click])
+        done_back_to_main_button.render(screen, mouse_r_click, width=190, x=400)
+        back_button.render(screen, mouse_r_click, text="Cancel", width=190, x=200, y=height - 200)
+    elif menus["open_world_menu_oppened"]:
+        screen.blit(gui_textures["main_manu_background"], [0,0])
+        done_back_to_main_button.render(screen,mouse_r_click)
         world_files_list = list_world_files()
         for i in range(len(world_files_list)):
             try:
@@ -888,67 +1026,80 @@ def render_gui():
                         print("Error loading world", world_files_list[i])
     elif menus["update_world_menu_oppened"]:
         raise gameExceptions.MenuNotExist
-        if done_back_to_main_button.render(screen,mouse_r_click):
-            menus["update_world_menu_oppened"] = False
-            menus["file_menu_oppened"] = True
-        world_files_list = list_world_files()#current_world_name
-        if not current_breaking_time:
-            if load_world_button.render(screen, mouse_r_click, y = 50, text = f"Current: {current_world_name}"[:21]+".."):
-                save_world(filename=current_world_name, overwrite=True)
-                #world_files.save_data({"version":-1,"gamemode":overworld.gamemode, "playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)}, filename=current_world_name, overwrite=True)
-
-            for i in range(len(world_files_list)):
-                if load_world_button.render(screen, mouse_r_click, y = i*70 + 120, text = world_files_list[i]):
-                    save_world(world_files_list[i], overwrite=True)
-                    #world_files.save_data({"version":-1,"gamemode":overworld.gamemode, "playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)}, filename=world_files_list[i], overwrite=True)
-        else:            
-            for i in range(len(world_files_list)):
-                if load_world_button.render(screen, mouse_r_click, y = i*70 + 50, text = world_files_list[i]):
-                    save_world(world_files_list[i], overwrite=True)
-                    #world_files.save_data({"version":-1,"gamemode":overworld.gamemode, "playerx":overworld.main_player.x, "playery":overworld.main_player.y, "select_in_hotbar":selected_in_hotbar , "world":parse_world(overworld)}, filename=world_files_list[i], overwrite=True)
-
+    elif menus["chat_input_oppened"]:
+        chat_input.render(screen, events, [mouse_x, mouse_y, mouse_r_click])
 def check_timer():
+    
     global last_timer_value, timer
     last_timer_value = timer
     timer = time.time()
 
-    if overowrld and (not multiplayer_mode) and int(timer + timer_start) % world_auto_save_time_seconds == 0 and int(timer) != int(last_timer_value):
+    if overworld and (not multiplayer_mode) and int(timer + timer_start) % world_auto_save_time_seconds == 0 and int(timer) != int(last_timer_value):
         save_world(filename=current_world_name, overwrite=True)
         print("Auto saving world.")
         chat_log("Auto saved world.")
 
-    if int(timer) % 5 == 0 and int(timer) != int(last_timer_value):
-        chat_log("Time: " + str(int(timer)) + " seconds")
+    # if int(timer) % 5 == 0 and int(timer) != int(last_timer_value):
+    #     chat_log("Time: " + str(int(timer)) + " seconds")
 
 """--------------------------- MAIN GAME LOOP ----------------------------------------------------------------"""
-while running:
-    handle_events()
-    if not (menus["create_world_menu_oppened"] or menus["open_world_menu_oppened"] or menus["update_world_menu_oppened"] or menus["main_menu_oppened"] or menus["multiplayer_menu_oppened"]):
-        if update_frame_once or not (is_game_paused()):
-            handle_player_movement()
+def run():
+    global tick
+    TPS = 30
+    TICK_DEFAULT_WAITING_TIME = 1/TPS
+    GUI_TPS = 30
+    GUI_TICK_DEFAULT_WAITING_TIME = 1/GUI_TPS
+    def TICK_THREAT():
+        global events, overworld, BREAK_BLOCK, phase, mouse_r_click
+        LAST_TICK = -1
+        GUI_LAST_TICK = -1
+        while running:
+            time_ = time.time()
+            if time_ - GUI_LAST_TICK > GUI_TICK_DEFAULT_WAITING_TIME:
+                handle_events()
+                check_gui_interaction()
+                GUI_LAST_TICK = time_
+            if time_ - LAST_TICK > TICK_DEFAULT_WAITING_TIME:
+                if not (menus["create_world_menu_oppened"] or menus["open_world_menu_oppened"] or menus["update_world_menu_oppened"] or menus["main_menu_oppened"] or menus["multiplayer_menu_oppened"]):
+                    handle_player_movement()
+                    if BREAK_BLOCK:
+                        break_block(cursor_block_x, cursor_block_y)
+                        BREAK_BLOCK = False
+                    if mouse_r:
+                        try:
+                            try_place_block(overworld, cursor_block_x, cursor_block_y, block_texture_id[inventory.get_slot(selected_in_hotbar, 0)])
+                        except:
+                            pass
+                LAST_TICK = time_
+            time.sleep(min(GUI_TICK_DEFAULT_WAITING_TIME, TICK_DEFAULT_WAITING_TIME)/10)
+
+
+    TICK_THREAD_ = threading.Thread(target=TICK_THREAT)
+    TICK_THREAD_.start()
+    while running:
+        if not (menus["create_world_menu_oppened"] or menus["open_world_menu_oppened"] or menus["update_world_menu_oppened"] or menus["main_menu_oppened"] or menus["multiplayer_menu_oppened"]):
             update_camera()
+            render_world()
+            render_players()
+            cursor_block_x, cursor_block_y = handle_cursor_and_block_breaking(is_game_paused())
+            if not hide_ui:
+                render_ui(cursor_block_x, cursor_block_y)
+        if is_game_paused():
+            try:
+                render_gui() 
+            except gameExceptions.MenuClosed:
+                pass
 
-            overworld.current_delay = max(0, overworld.current_delay-1)
-            update_frame_once = False
-        render_world()
-        render_players()
-        cursor_block_x, cursor_block_y = handle_cursor_and_block_breaking(is_game_paused())
-        if not hide_ui:
-            render_ui(cursor_block_x, cursor_block_y)
-    if is_game_paused():
-        try:
-            render_gui() 
-        except gameExceptions.MenuClosed:
-            pass
+        pygame.display.flip()
 
-    pygame.display.flip()
+        tick = ((tick+1) % framerate)
+        check_timer()
+        clock.tick(framerate)
+    if multiplayer_mode:
+        client_sock_stream.close()
+        client_dgram.close()
+    pygame.quit()
+    sys.exit()
 
-    tick = pygame.time.get_ticks()%30
-    clock.tick(framerate)
-    mouse_r_click = False
-    check_timer()
-if multiplayer_mode:
-    client_sock_stream.close()
-    client_dgram.close()
-pygame.quit()
-sys.exit()
+if __name__ == "__main__":
+    run()

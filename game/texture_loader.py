@@ -68,6 +68,29 @@ gui_files = {
     "button_hover": "button_hover.png",
     "main_manu_background": "background/mc_background.png"
 }
+health_bar_files = {
+    "health0": "health0.png",
+    "health1": "health1.png",
+    "health2": "health2.png",
+    "health3": "health3.png",
+    "health4": "health4.png",
+    "health5": "health5.png",
+    "health6": "health6.png",
+    "health7": "health7.png",
+    "health8": "health8.png",
+    "health9": "health9.png",
+    "health10": "health10.png",
+    "health11": "health11.png",
+    "health12": "health12.png",
+    "health13": "health13.png",
+    "health14": "health14.png",
+    "health15": "health15.png",
+    "health16": "health16.png",
+    "health17": "health17.png",
+    "health18": "health18.png",
+    "health19": "health19.png",
+    "health20": "health20.png"
+}
 structures = {}
 gui_textures = {}
 
@@ -86,6 +109,7 @@ music_folder = "assets/music/"
 cursor_folder = "assets/textures/cursor/"
 gui_folder = "assets/textures/GUI/"
 player_folder = "assets/textures/player/"
+health_bar_folder = "assets/textures/GUI/bars/Health"
 player_textures = {}
 
 #--------TEXTURE LOADING-----------
@@ -145,6 +169,18 @@ def load_player_textures(player_textures_files = player_textures_files):
         print("\nError loading player textures:\n", e)
         exit()
 
+def load_health_bar_textures():
+    try:
+        health_bar = {}
+        for key, file_path in health_bar_files.items():
+            health_bar[key] = pygame.transform.scale(pygame.image.load(health_bar_folder + "/" + file_path).convert_alpha(), (300, 32))
+        
+        print(f"Loaded {len(health_bar)} health bar textures.")
+        return health_bar
+    except Exception as e:
+        print("\nError loading health bar textures:\n", e)
+        exit()
+
 def load_sound_effects():
     try:
         block_sound = {}
@@ -167,8 +203,10 @@ def load_textures_and_sounds(block_size, block_size_add):
     item_textures = load_item_textures(item_size)
     player_t = load_player_textures()
     block_sound = load_sound_effects()
+    health_bar = load_health_bar_textures()
     
-    return [cursor, textures, block_sound, item_textures, player_t, gui_t]
+    return [cursor, textures, block_sound, item_textures, player_t, gui_t, health_bar]
+
 def random_sound(name, block_sound):
     try:
         sound_type = sound_list[name]

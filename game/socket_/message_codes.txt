@@ -1,0 +1,14 @@
+Client -> Server
+00 - ConnectionRequest [nickname]
+01 - Disconnected []
+02 - PlayerRenamed [newNickname]
+03 - ChatMessage [message]
+
+Server -> Client
+00 - one - Connection Accepted [nicknames]
+01 - one - Disconnect []
+02 - all - UserJoined [nickname]
+03 - all - UserLeft [nickname]
+04 - all - PlayerRenamed [nickname, newNickname]
+05 - all - ChatMessage [nickname, message]
+06 - one - CheckingConnection

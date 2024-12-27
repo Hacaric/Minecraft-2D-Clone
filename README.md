@@ -7,10 +7,17 @@
 It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and inventory are still in development.
 It runs at 30fps; once I finish new rendering, it should be able to run at 60fps.
 I'm currently working on multiplayer mode.**</br></br>
-If you are reading this please share :D - I'm glad if anybody reads this.</br></br>
+If you are reading this please share :D - I'm glad if anybody reads this.</br>
 
-## Wiki
-[https://github.com/Hacaric/Minecraft-2D-Clone/wiki](https://github.com/Hacaric/Minecraft-2D-Clone/wiki)
+***
+
+## Links
+
+**Website:**
+https://hacaric.github.io/Minecraft-2D-Clone/
+
+**Wiki:**
+https://github.com/Hacaric/Minecraft-2D-Clone/wiki
 
 ## Credits
 Original Scratch project by **Griffpatch** - https://scratch.mit.edu/projects/10128407/  

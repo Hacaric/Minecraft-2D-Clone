@@ -19,6 +19,9 @@ https://hacaric.github.io/Minecraft-2D-Clone/
 **Wiki:**
 https://github.com/Hacaric/Minecraft-2D-Clone/wiki
 
+**Installation guide:**
+https://github.com/Hacaric/Minecraft-2D-Clone/wiki/Download-&-Run
+
 ## Credits
 Original Scratch project by **Griffpatch** - https://scratch.mit.edu/projects/10128407/  
 Original game: **Minecraft** - https://minecraft.net/   

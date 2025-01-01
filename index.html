@@ -5,50 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft 2D</title>
     <style>
-        body{font-family:Arial,sans-serif;text-align:center;font-size:large;}
+        body{font-family:Arial,sans-serif;text-align:center;font-size:large;background-position: center -65px;background-image: url("./game/assets/textures/GUI/background/mc_background.png");background-size: cover;}
         li{margin-bottom:10px;list-style-type:none;}
         a{color:#007BFF;text-decoration:blue;}
         a:hover{text-decoration:underline;}
-        table{font-family:arial,sans-serif;border-collapse:collapse;width:100%;}
-        td,th{border:1px solid #dddddd;text-align:left;padding:8px;}
-        tr:nth-child(even){background-color:#dddddd;}
+        .table_container{margin-top: 34%;background-color: rgba(0, 0, 0, 0.466);}
+        table{font-family:arial,sans-serif;border-collapse:collapse;width:100%;margin: auto;font-size: large;}
+        td,th{border:5px solid rgba(0, 0, 0, 1);text-align:left;padding:8px;}
+        tr:nth-child(even){background-color:#dddddd88;}
+        /* p{margin-bottom: 500px;} */
     </style>
 </head>
 <body>
-    <h1>Minecraft 2D Downloads!</h1>
-    <table style="width: 100%; text-align: left;">
-        <tr>
-            <th>Version</th>
-            <th>Download</th>
-            <th>Redirect</th>
-        </tr>
-        <tr>
-            <td>Latest - only game folder</td>
-            <td>
-                <a href="https://download-directory.github.io/?url=https%3A%2F%2Fgithub.com%2FHacaric%2FMinecraft-2D-Clone%2Ftree%2Fmain%2Fgame" download="Minecraft-2D-Clone_Latest">
-                    Download
-                </a>
-            </td>
-            <td>download-directory.github.io</td>
-        </tr>
-        <tr>
-            <td>Release</td>
-            <td>
-                <a href="https://github.com/Hacaric/Minecraft-2D-Clone/archive/refs/heads/main.zip" download="Minecraft-2D-Clone_Release">
-                    Download
-                </a>
-            </td>
-            <td>github.com</td>
-        </tr>
-        <tr>
-            <td>Latest</td>
-            <td>
-                <a href="https://github.com/Hacaric/Minecraft-2D-Clone/archive/refs/heads/main.zip" download="Minecraft-2D-Clone_Latest">
-                    Download
-                </a>
-            </td>
-            <td>github.com</td>
-        </tr>
-    </table>
+    <div class="table_container">
+        <table style="width: 100%; text-align: left;">
+            <tr>
+                <th>Version</th>
+                <th>Download</th>
+                <th>Redirect</th>
+            </tr>
+            <tr>
+                <td>Latest (launcher included!)</td>
+                <td>
+                    <a href="https://github.com/Hacaric/Minecraft-2D-Clone/archive/refs/heads/main.zip" download="Minecraft-2D-Clone_Latest">
+                        Download
+                    </a>
+                </td>
+                <td>github.com</td>
+            </tr>
+            <tr>
+                <td>Release</td>
+                <td>
+                    <a href="https://github.com/Hacaric/Minecraft-2D-Clone/archive/refs/heads/main.zip" download="Minecraft-2D-Clone_Release">
+                        Download
+                    </a>
+                </td>
+                <td>github.com</td>
+            </tr>
+            <tr>
+                <td>Latest - only game folder</td>
+                <td>
+                    <a href="https://download-directory.github.io/?url=https%3A%2F%2Fgithub.com%2FHacaric%2FMinecraft-2D-Clone%2Ftree%2Fmain%2Fgame" download="Minecraft-2D-Clone_Latest">
+                        Download
+                    </a>
+                </td>
+                <td>download-directory.github.io</td>
+            </tr>
+        </table>
+    </div>
 </body>
 </html>

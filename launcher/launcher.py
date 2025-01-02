@@ -50,7 +50,7 @@ class GameLauncher:
         # auth_button = ttk.Button(auth_frame, text="Get Auth Token", command=self.get_auth_token)
         # auth_button.pack(pady=5)
 
-        update_button = ttk.Button(auth_frame, text="Get Updates", command=self.make_update)
+        update_button = ttk.Button(self.root, text="Get Updates", command=self.make_update)
         update_button.pack(pady=5)
 
         # Launch Button
@@ -64,10 +64,11 @@ class GameLauncher:
         status_label.pack(pady=10)
 
     def make_update(_):
-        from updater import make_update as update
-        update()
-        messagebox.showinfo("Update info", "Update was downloaded\nYou need to restart launcher.")
-        exit(1)
+        if messagebox.askokcancel("Update info", "Update will earse all data except for the 'saves' folder.\nDo you want to continue?"):
+            from updater import make_update as update
+            update()
+            messagebox.showinfo("Update info", "Update was downloaded\nYou need to restart launcher.")
+            exit(1)
 
     def get_auth_token(self):
         """ Placeholder for getting auth token. """

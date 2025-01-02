@@ -80,9 +80,9 @@ class GameLauncher:
     def make_update(self):
         if messagebox.askokcancel("Update info", "Update will earse all data except for the 'saves' folder.\nDo you want to continue?"):
             self.donwload_update()
-            messagebox.showinfo("Update info", "Update was downloaded\nYou need to restart launcher.")
+            messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
+            subprocess.Popen(["python", __file__], shell=False)
             exit(1)
-
     def get_auth_token(self):
         """ Placeholder for getting auth token. """
         messagebox.showinfo("Info", "Auth token functionality not implemented yet.")
@@ -117,6 +117,8 @@ class GameLauncher:
         from zipfile import ZipFile
         import os
         import shutil
+        self.status_var.set(f"Status: Installing...")
+
 
         update_zip_path = '../.update/version.zip'
         extract_path = '../.update/update_files/'

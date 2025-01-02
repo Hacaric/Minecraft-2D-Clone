@@ -1,9 +1,38 @@
 import os
 import shutil
-from tkinter import Tk, Label, Button, filedialog, messagebox, Text, Scrollbar, VERTICAL, RIGHT, Y
+from tkinter import Tk, Label, Button, filedialog, messagebox, Text, Scrollbar, VERTICAL, RIGHT, Y, INSERT, DISABLED
+import subprocess
 
 # Define the source folder containing the game files
 GAME_FOLDER_NAME = "Minecraft_2D"
+
+def folder_in_directory_tree(target_dir, folder_name, depth=0):
+    try:
+        if depth >= 7:
+            return False
+        for item in [os.path.join(target_dir, folder) for folder in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, folder))]:
+            if folder_name == os.path.basename(item):
+                return item
+            addr = folder_in_directory_tree(item, folder_name, depth=depth+1)
+            if addr:
+                return addr
+        return False
+    except:
+        return False
+
+def is_directory_in_parents(target_directory, directory_name):
+    current_path = os.path.abspath(target_directory)
+    
+    while True:
+        parent_path, current_dir = os.path.split(current_path)
+        if current_dir == directory_name:
+            return os.path.join(current_path)
+        if not parent_path or parent_path == current_path:
+            # Reached the root directory
+            break
+        current_path = parent_path
+    
+    return False
 
 def log_message(message):
     """Log a message to the installation window."""
@@ -12,11 +41,32 @@ def log_message(message):
     root.update_idletasks()
 
 
-def choose_installation_directory():
+def choose_installation_directory(title="Select Installation Directory"):
     """Let the user select an installation directory."""
-    folder = filedialog.askdirectory(title="Select Installation Directory")
+    folder = filedialog.askdirectory(title=title)
     if folder:
-        install_game(folder)
+        return folder
+    else:
+        print("error choosing file (line 39)")
+
+def run_laucher():
+    starting_game_folder = choose_installation_directory(title="Select Game Directory")
+    log_message("Looking for directory...")
+    if os.path.basename(starting_game_folder) == GAME_FOLDER_NAME:
+        game_folder = starting_game_folder
+    else:
+        log_message(f"Looking for game directory in parents of '{starting_game_folder}'.")
+        game_folder = is_directory_in_parents(starting_game_folder, GAME_FOLDER_NAME)
+        if game_folder == False:
+            log_message(f"Looking for game directory in tree of '{starting_game_folder}'.")
+            game_folder = folder_in_directory_tree(starting_game_folder, GAME_FOLDER_NAME)
+            if game_folder == False:
+                messagebox.showerror("Not found", "Game wasn't found in current directory.\nTry installing it.")
+                return
+    option = messagebox.askquestion("Game found!", "Launcher found!\nRun laucher and close installer?")
+    if option == "yes":
+        subprocess.Popen(["python", f"{game_folder}/launcher/launcher.py"], shell=False)
+        exit(1)
 
 def install_game(game_folder):
     import requests
@@ -25,13 +75,14 @@ def install_game(game_folder):
     import shutil
 
     if os.path.exists(f"{game_folder}/{GAME_FOLDER_NAME}/"):
-        check1 = messagebox.askyesno("Warning", f"Game already installed!\nYou can run game by running file {os.path.join(game_folder, GAME_FOLDER_NAME, 'launcher/launcher.py')}\nDo you want to continue?")
+        check1 = messagebox.askyesno("Warning", f"Game already installed!\nYou can run game by running file {os.path.join(game_folder, GAME_FOLDER_NAME, 'launcher/launcher.py')}\nDo you want to continue installation?")
         if not check1:
-            exit(1)
+            return
         check2 = messagebox.askyesno("Warning", f"Are you sure? All files will be deleted.")
         if not check2:
-            exit(1)
+            return
         shutil.rmtree(f"{game_folder}/{GAME_FOLDER_NAME}/")
+    log_message(f"Installing into directory: {game_folder}")
     os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")
     update_zip_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/version.zip'
     extract_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/'
@@ -121,9 +172,8 @@ def install_game(game_folder):
         exit(1)
     log_message("\nUpdated successfully.")
     if messagebox.askyesno("Installation info.", "Installed sucessfully.\nRun launcher?"):
-        import subprocess
-        subprocess.Popen("python", f"./{GAME_FOLDER_NAME}/launcher/launcher.py")
-    exit(1)#TODO
+        run_laucher()
+        exit(1)#TODO
 
 
 
@@ -131,15 +181,18 @@ def install_game(game_folder):
 def create_installer():
     global root, log_window
     root = Tk()
-    root.title("Game Installer")
+    root.title("Minecraft 2D Installer")
     root.geometry("600x400")
 
     # Add a label
-    label = Label(root, text="Welcome to the Game Installer!", font=("Arial", 14))
+    label = Label(root, text="Welcome to Miencraft 2D Installer!", font=("Arial", 14))
     label.pack(pady=20)
 
     # Add a button to choose the installation directory
-    install_button = Button(root, text="Install Game", command=choose_installation_directory, font=("Arial", 12))
+    install_button = Button(root, text="Install Game", command=lambda:install_game(choose_installation_directory()), font=("Arial", 12))
+    install_button.pack(pady=10)
+
+    install_button = Button(root, text="Run game", command=run_laucher, font=("Arial", 12))
     install_button.pack(pady=10)
 
     log_frame = Scrollbar(root, orient=VERTICAL)
@@ -148,7 +201,10 @@ def create_installer():
 
     log_window = Text(root, wrap="word", yscrollcommand=log_frame.set, height=15, width=70)
     log_window.pack(pady=10)
+    from datetime import datetime
+    log_window.insert(INSERT, f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nLog:\n")
     log_frame.config(command=log_window.yview)
+    log_window.config(state=DISABLED)
 
 
     # Add an exit button

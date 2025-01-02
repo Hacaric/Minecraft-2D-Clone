@@ -6,7 +6,7 @@ import json
 import subprocess
 import time
 
-launcher_data_file = os.path.join(os.path.dirname( __file__ ), '.', 'laucher_config.json')
+launcher_data_file = os.path.join(os.path.dirname( __file__ ), '.', 'launcher_config.json')
 
 class GameLauncher:
     def __init__(self, root):
@@ -45,9 +45,13 @@ class GameLauncher:
 
         self.auth_token_display = ScrolledText(auth_frame, height=3, wrap=tk.WORD)
         self.auth_token_display.pack(fill="x", padx=10, pady=5)
+        self.auth_token_display.insert(tk.INSERT, "Autentification not functional yet")
         
-        auth_button = ttk.Button(auth_frame, text="Get Auth Token", command=self.get_auth_token)
-        auth_button.pack(pady=5)
+        # auth_button = ttk.Button(auth_frame, text="Get Auth Token", command=self.get_auth_token)
+        # auth_button.pack(pady=5)
+
+        update_button = ttk.Button(auth_frame, text="Get Updates", command=self.make_update)
+        update_button.pack(pady=5)
 
         # Launch Button
         launch_button = ttk.Button(self.root, text="Launch Game", command=self.launch_game)
@@ -58,6 +62,12 @@ class GameLauncher:
         self.status_var.set("Status: Ready")
         status_label = ttk.Label(self.root, textvariable=self.status_var, font=("Arial", 10))
         status_label.pack(pady=10)
+
+    def make_update(_):
+        from updater import make_update as update
+        update()
+        messagebox.showinfo("Update info", "Update was downloaded\nYou need to restart launcher.")
+        exit(1)
 
     def get_auth_token(self):
         """ Placeholder for getting auth token. """

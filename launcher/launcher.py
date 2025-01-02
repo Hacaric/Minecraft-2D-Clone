@@ -1,3 +1,14 @@
+# 
+# To execute this file, double-click it or run the command: $ python installer.py
+#
+# If your Python installation cannot be executed this way, verify if Python is 
+# installed correctly. Alternatively, update the variable below to match the command 
+# used to run Python in your console (e.g., "python3" or a custom alias).
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+python_shell_command = "python"
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
@@ -6,12 +17,6 @@ import json
 import subprocess
 import time
 
-
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
 
 
 launcher_data_template = '{"version": 1, "game_versions": {"latest": "./game/"}, "game_version_last_played": 0}'
@@ -81,7 +86,7 @@ class GameLauncher:
         if messagebox.askokcancel("Update info", "Update will earse all data except for the 'saves' folder.\nDo you want to continue?"):
             self.donwload_update()
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
-            subprocess.Popen(["python", __file__], shell=False)
+            subprocess.Popen([python_shell_command, __file__], shell=False)
             exit(1)
     def get_auth_token(self):
         """ Placeholder for getting auth token. """
@@ -103,7 +108,7 @@ class GameLauncher:
                 self.download_version(version=selected_version)
             self.status_var.set(f"Status: Launching version {selected_version}...")
             os.chdir(self.game_versions[selected_version])
-            game_status = subprocess.Popen(["python", "./main.py"])
+            game_status = subprocess.Popen([python_shell_command, "./main.py"])
             self.status_var.set(f"Status: Game is running...")
             while game_status.poll() is None:
                 time.sleep(1)

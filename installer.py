@@ -1,6 +1,16 @@
+# 
+# To execute this file, double-click it or run the command: $ python installer.py
+#
+# If your Python installation cannot be executed this way, verify if Python is 
+# installed correctly. Alternatively, update the variable below to match the command 
+# used to run Python in your console (e.g., "python3" or a custom alias).
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+python_shell_command = "python"
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 import os
 import shutil
-from tkinter import Tk, Label, Button, filedialog, messagebox, Text, Scrollbar, VERTICAL, RIGHT, Y, INSERT, DISABLED
+from tkinter import Tk, Label, Button, filedialog, messagebox, Text, Scrollbar, VERTICAL, RIGHT, Y, INSERT, DISABLED, NORMAL
 import subprocess
 
 # Define the source folder containing the game files
@@ -36,9 +46,11 @@ def is_directory_in_parents(target_directory, directory_name):
 
 def log_message(message):
     """Log a message to the installation window."""
+    log_window.config(state=NORMAL)
     log_window.insert("end", message + "\n")
     log_window.see("end")
     root.update_idletasks()
+    log_window.config(state=DISABLED)
 
 
 def choose_installation_directory(title="Select Installation Directory"):
@@ -65,7 +77,7 @@ def run_laucher():
                 return
     option = messagebox.askquestion("Game found!", "Launcher found!\nRun laucher and close installer?")
     if option == "yes":
-        subprocess.Popen(["python", f"{game_folder}/launcher/launcher.py"], shell=False)
+        subprocess.Popen([python_shell_command, f"{game_folder}/launcher/launcher.py"], shell=False)
         exit(1)
 
 def install_game(game_folder):
@@ -138,6 +150,10 @@ def install_game(game_folder):
 
     log_message("\nCopying files...")
     new_files = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
+    try:
+        new_files.remove(os.path.basename(__file__))
+    except:
+        print("Error removing installer.py from installation.")
     for filename in new_files:
         log_message(f"|---Updating file {filename}")
         os.replace(
@@ -185,7 +201,7 @@ def create_installer():
     root.geometry("600x400")
 
     # Add a label
-    label = Label(root, text="Welcome to Miencraft 2D Installer!", font=("Arial", 14))
+    label = Label(root, text="Welcome to Minecraft 2D Installer!", font=("Arial", 14))
     label.pack(pady=20)
 
     # Add a button to choose the installation directory

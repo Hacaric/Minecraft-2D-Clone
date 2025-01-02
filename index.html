@@ -7,19 +7,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft 2D</title>
     <style>
-        body{overflow: hidden; overflow-y: scroll; font-family:Arial,sans-serif;text-align:center;font-size:large;background-position: center -65px;background-image: url("./game/assets/textures/GUI/background/mc_background.png");background-size: 100%;height:100vh;background-repeat: no-repeat;}
+        body{overflow: hidden; background-color: #855f39; overflow-y: scroll; font-family:Arial,sans-serif;text-align:center;font-size:large;background-position: center -65px;background-image: url("./game/assets/textures/GUI/background/mc_background.png");background-size: 100%;height:100vh;background-repeat: no-repeat;}
         body::-webkit-scrollbar{display: none;}
         li{margin-bottom:10px;list-style-type:none;}
         a{color:#007BFF;text-decoration:blue;}
         a:hover{text-decoration:underline;}
-        .table_container{margin-top: 34%;background-color: rgba(0, 0, 0, 0.466);position: fixed;}
+        .table_container{margin-top: 5vh; margin-bottom: 5vh;background-color: rgba(0, 0, 0, 0.466);position: relative;}
         table{font-family:arial,sans-serif;border-collapse:collapse;width:100%;margin: auto;font-size: large;}
         td,th{border:5px solid rgba(0, 0, 0, 1);text-align:left;padding:8px;}
         tr:nth-child(even){background-color:#dddddd88;}
+        #downloadBtn{margin-top: 55vh; background-color: rgba(172, 172, 172, 0.527); width: 783px; height: 129px; cursor:pointer; font-size: 40px; font-family: fantasy; font-weight: bold; background-image: url("./game/assets/textures/GUI/button.png");}
+        #downloadBtn:hover{background-image: url("./game/assets/textures/GUI/button_hover.png");}
         /* p{margin-bottom: 500px;} */
     </style>
 </head>
 <body>
+<div class="body">
+    <button id="downloadBtn">
+        Download installer
+    </button>
     <div class="table_container">
         <table style="width: 100%; text-align: left;">
             <tr>
@@ -56,5 +62,22 @@
             </tr>
         </table>
     </div>
+    <script>
+        document.getElementById("downloadBtn").addEventListener("click", () => {
+            const url = "https://raw.githubusercontent.com/Hacaric/Minecraft-2D-Clone/refs/heads/main/installer.py";
+            fetch(url)
+                .then(response => response.blob())
+                .then(blob => {
+                    const link = document.createElement("a");
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = "Installer-Minecraft-2D.py";
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                })
+                .catch(console.error);
+        });
+    </script>
+</div>
 </body>
 </html>

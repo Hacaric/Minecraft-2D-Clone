@@ -15,7 +15,7 @@ import subprocess
 
 # Define the source folder containing the game files
 GAME_FOLDER_NAME = "Minecraft_2D"
-GAME_IDENTIFIER = "identifierMinecraft2D"
+GAME_IDENTIFIER = ".identifierMinecraft2D"
 
 def folder_in_directory_tree(target_dir, folder_name, depth=0):
     try:

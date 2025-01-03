@@ -1104,6 +1104,7 @@ def run():
         client_dgram.close()
     pygame.quit()
     sys.exit()
+    exit(1)
 
 if __name__ == "__main__":
     run()

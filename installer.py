@@ -15,6 +15,7 @@ import subprocess
 
 # Define the source folder containing the game files
 GAME_FOLDER_NAME = "Minecraft_2D"
+GAME_INDENTIFYER = ".identifierMinecraft2D"
 
 def folder_in_directory_tree(target_dir, folder_name, depth=0):
     try:
@@ -56,6 +57,7 @@ def log_message(message):
 def choose_installation_directory(title="Select Installation Directory"):
     """Let the user select an installation directory."""
     folder = filedialog.askdirectory(title=title)
+
     if folder:
         return folder
     else:
@@ -64,20 +66,20 @@ def choose_installation_directory(title="Select Installation Directory"):
 def run_laucher():
     starting_game_folder = choose_installation_directory(title="Select Game Directory")
     log_message("Looking for directory...")
-    if os.path.basename(starting_game_folder) == GAME_FOLDER_NAME:
+    if os.path.basename(starting_game_folder) == GAME_INDENTIFYER:
         game_folder = starting_game_folder
     else:
         log_message(f"Looking for game directory in parents of '{starting_game_folder}'.")
-        game_folder = is_directory_in_parents(starting_game_folder, GAME_FOLDER_NAME)
+        game_folder = is_directory_in_parents(starting_game_folder, GAME_INDENTIFYER)
         if game_folder == False:
             log_message(f"Looking for game directory in tree of '{starting_game_folder}'.")
-            game_folder = folder_in_directory_tree(starting_game_folder, GAME_FOLDER_NAME)
+            game_folder = folder_in_directory_tree(starting_game_folder, GAME_INDENTIFYER)
             if game_folder == False:
                 messagebox.showerror("Not found", "Game wasn't found in current directory.\nTry installing it.")
                 return
     option = messagebox.askquestion("Game found!", "Launcher found!\nRun laucher and close installer?")
     if option == "yes":
-        subprocess.Popen([python_shell_command, f"{game_folder}/launcher/launcher.py"], shell=False)
+        subprocess.Popen([python_shell_command, f"{game_folder}/../launcher/launcher.py"], shell=False)
         exit(1)
 
 def install_game(game_folder):
@@ -95,11 +97,20 @@ def install_game(game_folder):
             return
         shutil.rmtree(f"{game_folder}/{GAME_FOLDER_NAME}/")
     log_message(f"Installing into directory: {game_folder}")
-    os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")
-    update_zip_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/version.zip'
-    extract_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/'
-    extract_only_this_folder_from_zip = "./"
-    old_files_path = f'{game_folder}/{GAME_FOLDER_NAME}/'
+    if messagebox.askyesno("Create folder?", f"Create folder named {GAME_FOLDER_NAME}? (if not, app will be installed directly into choosen directory.)"):
+        
+        os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")
+        update_zip_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/version.zip'
+        extract_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/'
+        extract_only_this_folder_from_zip = "./"
+        old_files_path = f'{game_folder}/{GAME_FOLDER_NAME}/'
+    else:
+        os.makedirs(f"{game_folder}/.update/update_files/")
+        update_zip_path = f'{game_folder}/.update/version.zip'
+        extract_path = f'{game_folder}/.update/update_files/'
+        extract_only_this_folder_from_zip = "./"
+        old_files_path = f'{game_folder}/'
+
 
     # GitHub repository URL
     repository_name = 'Minecraft-2D-Clone'

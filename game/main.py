@@ -404,7 +404,11 @@ def load_world(data):
     overworld.gamemode = data["gamemode"]
     overworld.main_player.gamemode = data["gamemode"]
 def list_world_files():
-    return os.listdir("saves")
+    try:
+        return os.listdir("./saves/")
+    except:
+        os.mkdir("./saves/")
+        return []
 def is_game_paused() -> bool:
     #print(menus["multiplayer_menu_oppened"] ormenus["main_menu_oppened"] or menus["file_menu_oppened"] or menus["ingame_main_menu_oppened"] or menus["options_menu_oppened"] or menus["open_world_menu_oppened"] or menus["update_world_menu_oppened"])
     

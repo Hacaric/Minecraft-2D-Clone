@@ -117,10 +117,10 @@ class GameLauncher:
                 file.seek(0)
                 data["game_version_last_played"] = self.game_versions_names.index(selected_version)
                 json.dump(data, file)  
-            if not "game" in os.listdir("../"):
-                self.download_version(version=selected_version)
+            # if not "game" in os.listdir("../"):
+            #     self.download_version(version=selected_version)
             self.status_var.set(f"Status: Launching version {selected_version}...")
-            os.chdir(self.game_versions[selected_version])
+            os.chdir(os.path.join(os.path.dirname(__file__), "..", self.game_versions[selected_version]))
             game_status = subprocess.Popen([python_shell_command, "./main.py"])
             self.status_var.set(f"Status: Game is running...")
             while game_status.poll() is None:

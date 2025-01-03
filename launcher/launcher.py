@@ -10,7 +10,7 @@ python_shell_command = "python"
 
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
 import os
 import json
@@ -20,10 +20,11 @@ import time
 
 
 launcher_data_template = '{"version": 1, "game_versions": {"latest": "./game/"}, "game_version_last_played": 0}'
-launcher_data_file = os.path.join(os.path.dirname( __file__ ), '.', 'launcher_config.json')
+launcher_data_file = os.path.join(os.path.dirname( __file__ ), 'launcher_config.json')
 
 class GameLauncher:
     def __init__(self, root):
+        os.chdir(os.path.join(os.path.dirname( __file__ )))
         self.root = root
         self.root.title("Minecraft 2D Launcher")
         self.root.geometry("600x400")
@@ -84,9 +85,21 @@ class GameLauncher:
 
     def make_update(self):
         if messagebox.askokcancel("Update info", "Update will earse all data except for the 'saves' folder.\nDo you want to continue?"):
-            self.donwload_update()
+            # choice = messagebox.askquestion(
+            #     "Directory Choice",
+            #     "Do you want to choose a directory? Click 'Yes' to choose, 'No' to work with the current directory, or close to cancel.",
+            # )
+            # if choice is None:
+            #     return
+            # if choice == "yes":
+            #     folder = filedialog.askdirectory(title="Choose")
+            #     if folder:
+            #         dir = folder
+            print(os.listdir(os.path.join(os.path.dirname(__file__), "../.update/")))
+            # return
+            self.donwload_update(os.path.join(os.path.dirname(__file__), "../"))
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
-            subprocess.Popen([python_shell_command, __file__], shell=False)
+            subprocess.Popen([python_shell_command, __file__])
             exit(1)
     def get_auth_token(self):
         """ Placeholder for getting auth token. """
@@ -104,7 +117,7 @@ class GameLauncher:
                 file.seek(0)
                 data["game_version_last_played"] = self.game_versions_names.index(selected_version)
                 json.dump(data, file)  
-            if not "game" in os.listdir("./"):
+            if not "game" in os.listdir("../"):
                 self.download_version(version=selected_version)
             self.status_var.set(f"Status: Launching version {selected_version}...")
             os.chdir(self.game_versions[selected_version])
@@ -117,18 +130,20 @@ class GameLauncher:
         else:
             messagebox.showwarning("Warning", "No version selected!")
 
-    def donwload_update(self):
+    def donwload_update(self, directory:str=None):
         import requests
         from zipfile import ZipFile
         import os
         import shutil
-        self.status_var.set(f"Status: Installing...")
-
-
-        update_zip_path = '../.update/version.zip'
-        extract_path = '../.update/update_files/'
-        extract_only_this_folder_from_zip = "../"
-        old_files_path = '../'
+        self.status_var.set(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
+        print(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
+        if directory is None:
+            print("Directory is None :line140")
+            directory = os.path.join(os.path.dirname(__file__), "..")
+        update_zip_path = os.path.join(directory, '.update/version.zip')
+        extract_path = os.path.join(directory, '.update/update_files/')
+        extract_only_this_folder_from_zip = "./"
+        old_files_path = os.path.join(directory)
 
         def folder_in_directory_tree(target_dir, folder_name):
             for item in [os.path.join(target_dir, folder) for folder in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, folder))]:
@@ -155,17 +170,23 @@ class GameLauncher:
         os.makedirs(old_files_path, exist_ok=True)
 
         # Download the file
+        self.status_var.set("Downloading update from github...")
         print("Downloading update from github...")
         response = requests.get(url)
         if response.status_code == 200:
-            with open(update_zip_path, 'wb') as file:
-                file.write(response.content)
-            print('File downloaded successfully')
+            try:
+                with open(update_zip_path, 'wb') as file:
+                    file.write(response.content)
+                print('File downloaded successfully')
+            except Exception as e:
+                print(f"\nError: {e}\n")
+                return
         else:
             print('Failed to download file')
             exit(1)
 
         # Unzip the file
+        self.status_var.set("Trying to unzip...")
         print("Trying to unzip...")
         try:
             with ZipFile(update_zip_path, 'r') as zObject:
@@ -187,9 +208,10 @@ class GameLauncher:
             print(f"Failed renaming directory {extract_path}{old_folder} to {repository_name} error: {e}")
             exit(1)
         # Delete the zip file
+        self.status_var.set("Deleting zip...")
         print("Deleting zip...")
         os.remove(update_zip_path)
-        print("\nReplacing files...")
+        print("\nUpdating files...")
         new_files = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
         for filename in new_files:
             print(f"|---Updating file {filename}")
@@ -209,6 +231,7 @@ class GameLauncher:
                 else:
                     print(f"\nError looking for existing file {file_to_delete}\n")
 
+        self.status_var.set("\nUpdating folders...")
         print("\nUpdating folders...")
         new_folders = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if not os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
         for folder_name in new_folders:
@@ -223,6 +246,7 @@ class GameLauncher:
             )
 
         print("\nReplacing completed.")
+        self.status_var.set("Cleaning up...")
         print("Cleaning up...")
         try: 
             try:
@@ -233,6 +257,7 @@ class GameLauncher:
         except Exception as e:
             print(f"Failed cleaning, repository probably contained directory. Error: {e}")
             exit(1)
+        self.status_var.set("\nUpdated successfully.")
         print("\nUpdated successfully.")
 
 

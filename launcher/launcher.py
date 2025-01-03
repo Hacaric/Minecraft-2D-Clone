@@ -16,6 +16,10 @@ import os
 import json
 import subprocess
 import time
+import requests
+from zipfile import ZipFile
+import os
+import shutil
 
 
 
@@ -129,12 +133,34 @@ class GameLauncher:
             os.chdir(os.path.join(os.getcwd(), ".."))
         else:
             messagebox.showwarning("Warning", "No version selected!")
-
+    def getCurentVersion(self, gameDir=os.path.join(os.cwd(), "..")):
+        if os.path.exists(gameDir):
+            if "version.txt" in os.listdir(gameDir):
+                try:
+                    with open(os.path.join(gameDir, "version.txt"), "r") as file:
+                        return file.read()
+                except Exception as e:
+                    print("Error", e)
+            else:
+                with open(os.path.join(gameDir, "version.txt"), "w") as file:
+                    file.write("0.0.0-snapshot")
+                return "0.0.0-snapshot"
+        else:
+            return None
+            
+    def getLatestCommitVersion():
+        url = "https://example.com"
+        response = requests.get(url)
+        if response.status_code == 200:
+            try:
+                return response.content
+            except Exception as e:
+                print(f"\nError accesing current version: {e}\n")
+                return "0.0.0-snapshot"
+        else:
+            print('Failed to download file')
+            exit(1)
     def donwload_update(self, directory:str=None):
-        import requests
-        from zipfile import ZipFile
-        import os
-        import shutil
         self.status_var.set(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
         print(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
         if directory is None:

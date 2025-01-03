@@ -618,7 +618,7 @@ def render_world():
                         blockx, blocky, size = staticx + (world_x*block_size), staticy - (world_y*block_size), block_size*1.2
                         current_frame.blit(textures[13], (blockx, blocky), (0, 0, size+block_size_add, size+block_size_add))
                         
-                except ValueError:
+                except:
                     pass
         #screen.blit(current_frame, (0, 0))
         last_frame = current_frame.copy()

@@ -15,7 +15,7 @@ import subprocess
 
 # Define the source folder containing the game files
 GAME_FOLDER_NAME = "Minecraft_2D"
-GAME_INDENTIFYER = ".identifierMinecraft2D"
+GAME_IDENTIFIER = "identifierMinecraft2D"
 
 def folder_in_directory_tree(target_dir, folder_name, depth=0):
     try:
@@ -63,21 +63,21 @@ def choose_installation_directory(title="Select Installation Directory"):
     else:
         print("error choosing file (line 39)")
 
-def run_laucher():
+def run_launcher():
     starting_game_folder = choose_installation_directory(title="Select Game Directory")
     log_message("Looking for directory...")
-    if os.path.basename(starting_game_folder) == GAME_INDENTIFYER:
+    if os.path.basename(starting_game_folder) == GAME_IDENTIFIER:
         game_folder = starting_game_folder
     else:
         log_message(f"Looking for game directory in parents of '{starting_game_folder}'.")
-        game_folder = is_directory_in_parents(starting_game_folder, GAME_INDENTIFYER)
+        game_folder = is_directory_in_parents(starting_game_folder, GAME_IDENTIFIER)
         if game_folder == False:
             log_message(f"Looking for game directory in tree of '{starting_game_folder}'.")
-            game_folder = folder_in_directory_tree(starting_game_folder, GAME_INDENTIFYER)
+            game_folder = folder_in_directory_tree(starting_game_folder, GAME_IDENTIFIER)
             if game_folder == False:
                 messagebox.showerror("Not found", "Game wasn't found in current directory.\nTry installing it.")
                 return
-    option = messagebox.askquestion("Game found!", "Launcher found!\nRun laucher and close installer?")
+    option = messagebox.askquestion("Game found!", "Launcher found!\nRun launcher and close installer?")
     if option == "yes":
         subprocess.Popen([python_shell_command, f"{game_folder}/../launcher/launcher.py"], shell=False)
         exit(1)
@@ -88,28 +88,36 @@ def install_game(game_folder):
     import os
     import shutil
 
-    if os.path.exists(f"{game_folder}/{GAME_FOLDER_NAME}/"):
-        check1 = messagebox.askyesno("Warning", f"Game already installed!\nYou can run game by running file {os.path.join(game_folder, GAME_FOLDER_NAME, 'launcher/launcher.py')}\nDo you want to continue installation?")
-        if not check1:
-            return
-        check2 = messagebox.askyesno("Warning", f"Are you sure? All files will be deleted.")
-        if not check2:
-            return
-        shutil.rmtree(f"{game_folder}/{GAME_FOLDER_NAME}/")
-    log_message(f"Installing into directory: {game_folder}")
-    if messagebox.askyesno("Create folder?", f"Create folder named {GAME_FOLDER_NAME}? (if not, app will be installed directly into choosen directory.)"):
+    if messagebox.askyesno("Create folder?", f"Create folder named {GAME_FOLDER_NAME}? (if not, app will be installed directly into chosen directory.)"):
         
         os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")
         update_zip_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/version.zip'
         extract_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/'
         extract_only_this_folder_from_zip = "./"
         old_files_path = f'{game_folder}/{GAME_FOLDER_NAME}/'
+        if os.path.exists(f"{game_folder}/{GAME_FOLDER_NAME}/"):
+            check1 = messagebox.askyesno("Warning", f"Game already installed!\nYou can run game by running file {os.path.join(game_folder, GAME_FOLDER_NAME, 'launcher/launcher.py')}\nDo you want to continue installation?")
+            if not check1:
+                return
+            check2 = messagebox.askyesno("Warning", f"Are you sure? All files will be deleted.")
+            if not check2:
+                return
+            shutil.rmtree(f"{game_folder}/{GAME_FOLDER_NAME}/")
     else:
         os.makedirs(f"{game_folder}/.update/update_files/")
         update_zip_path = f'{game_folder}/.update/version.zip'
         extract_path = f'{game_folder}/.update/update_files/'
         extract_only_this_folder_from_zip = "./"
         old_files_path = f'{game_folder}/'
+
+        if os.path.exists(f"{game_folder}/{GAME_IDENTIFIER}/"):
+            check1 = messagebox.askyesno("Warning", f"Game already installed!\nYou can run game by running file {os.path.join(game_folder, 'launcher/launcher.py')}\nDo you want to continue installation?")
+            if not check1:
+                return
+            check2 = messagebox.askyesno("Warning", f"Are you sure? This will likely produce an error. \nTry deleting all game files first(include {GAME_IDENTIFIER} folder).")
+            if not check2:
+                return
+    log_message(f"Installing into directory: {game_folder}")
 
 
     # GitHub repository URL
@@ -198,8 +206,8 @@ def install_game(game_folder):
         log_message(f"Failed cleaning, repository probably contained directory. Error: {e}")
         exit(1)
     log_message("\nUpdated successfully.")
-    if messagebox.askyesno("Installation info.", "Installed sucessfully.\nRun launcher?"):
-        run_laucher()
+    if messagebox.askyesno("Installation info.", "Installed successfully.\nRun launcher?"):
+        run_launcher()
         exit(1)#TODO
 
 
@@ -219,7 +227,7 @@ def create_installer():
     install_button = Button(root, text="Install Game", command=lambda:install_game(choose_installation_directory()), font=("Arial", 12))
     install_button.pack(pady=10)
 
-    install_button = Button(root, text="Run game", command=run_laucher, font=("Arial", 12))
+    install_button = Button(root, text="Run game", command=run_launcher, font=("Arial", 12))
     install_button.pack(pady=10)
 
     log_frame = Scrollbar(root, orient=VERTICAL)

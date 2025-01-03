@@ -85,7 +85,7 @@ class GameLauncher:
         new_version = self.newVersionAvailable()
         if new_version:
             if messagebox.askyesno("Update available", f"New version available: {new_version.full_format}.\nDo you want to download it?"):
-                self.donwload_update()
+                self.download_update()
     def setup_ui(self):
         try:
             open(launcher_data_file, "r")
@@ -108,7 +108,7 @@ class GameLauncher:
 
         self.auth_token_display = ScrolledText(auth_frame, height=3, wrap=tk.WORD)
         self.auth_token_display.pack(fill="x", padx=10, pady=5)
-        self.auth_token_display.insert(tk.INSERT, "Autentification not functional yet")
+        self.auth_token_display.insert(tk.INSERT, "Authentication not functional yet")
         
         # auth_button = ttk.Button(auth_frame, text="Get Auth Token", command=self.get_auth_token)
         # auth_button.pack(pady=5)
@@ -141,11 +141,11 @@ class GameLauncher:
     def make_update(self):
         # print("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))
         
-        #TK puts \n at end of ScrolledText. thets reason for '[:-1]' down below vvvvvvvvvvvvvvvv
+        #TK puts \n at end of ScrolledText. That's reason for '[:-1]' down below vvvvvvvvvvvvvvvv
         if self.newVersionAvailable() == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
-            messagebox.showwarning("Warning", f"Newest version already installed: {self.getCurentVersion()}\n(You can bypass this by typing '!force_update' into auth box.)\nAborting.")
+            messagebox.showwarning("Warning", f"Newest version already installed: {self.getCurrentVersion()}\n(You can bypass this by typing '!force_update' into auth box.)\nAborting.")
             return
-        if messagebox.askokcancel("Update info", "Update will earse all data except for the 'saves' folder.\nDo you want to continue?"):
+        if messagebox.askokcancel("Update info", "Update will erase all data except for the 'saves' folder.\nDo you want to continue?"):
             # choice = messagebox.askquestion(
             #     "Directory Choice",
             #     "Do you want to choose a directory? Click 'Yes' to choose, 'No' to work with the current directory, or close to cancel.",
@@ -158,7 +158,7 @@ class GameLauncher:
             #         dir = folder
             # print(os.listdir(os.path.join(os.path.dirname(__file__), "../.update/")))
             # return
-            self.donwload_update(os.path.join(os.path.dirname(__file__), "../"))
+            self.download_update(os.path.join(os.path.dirname(__file__), "../"))
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
             subprocess.Popen([python_shell_command, __file__])
             exit(1)
@@ -192,15 +192,15 @@ class GameLauncher:
             messagebox.showwarning("Warning", "No version selected!")
     def newVersionAvailable(self):
         if "version.txt" in os.listdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
-            current_version = Version(self.getCurentVersion())
-            latest_vesrion = Version(self.getLatestCommitVersion())
-            if latest_vesrion.iAmHigher(current_version):
-                return latest_vesrion
+            current_version = Version(self.getCurrentVersion())
+            latest_version = Version(self.getLatestCommitVersion())
+            if latest_version.iAmHigher(current_version):
+                return latest_version
             else:
                 return False
         else:
-            print(f"\n\n\nError loking for version.txt\nDirectory:{os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")}\n\n\n")
-    def getCurentVersion(self, gameDir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
+            print(f"\n\n\nError looking for version.txt\nDirectory:{os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")}\n\n\n")
+    def getCurrentVersion(self, gameDir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
         if os.path.exists(gameDir):
             if "version.txt" in os.listdir(gameDir):
                 try:
@@ -222,12 +222,12 @@ class GameLauncher:
             try:
                 return response.content.decode("utf-8")
             except Exception as e:
-                print(f"\nError accesing current version: {e}\n")
+                print(f"\nError accessing current version: {e}\n")
                 return "0.0.0-snapshot"
         else:
             print('Failed to download file')
             exit(1)
-    def donwload_update(self, directory:str=None):
+    def download_update(self, directory:str=None):
         self.status_var.set(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
         print(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
         if directory is None:

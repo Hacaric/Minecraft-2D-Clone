@@ -10,7 +10,7 @@ python_shell_command = "python"
 
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, END
 from tkinter.scrolledtext import ScrolledText
 import os
 import json
@@ -25,6 +25,53 @@ import shutil
 
 launcher_data_template = '{"version": 1, "game_versions": {"latest": "./game/"}, "game_version_last_played": 0}'
 launcher_data_file = os.path.join(os.path.dirname( __file__ ), 'launcher_config.json')
+class Version:
+    def __init__(self, info:str):
+        #info format: {major}.{minor}.{micro}-{type}
+        self.type:str = info.split("-")[-1] #release, snapshot, prerelease
+        numeric = info.split("-")[0].split(".")
+        self.major:int = int(numeric[0])
+        self.minor:int = int(numeric[1])
+        self.micro:int = int(numeric[2])
+        self.full_format:str = info
+    def iAmHigher(self, other):
+        if self.major > other.major:
+            return True
+        elif self.major == other.major:
+            if self.minor > other.minor:
+                return True
+            elif self.minor == other.minor:
+                if self.micro > other.micro:
+                    return True
+        return False
+def folder_in_directory_tree(target_dir, folder_name, depth=0):
+    try:
+        if depth >= 7:
+            return False
+        for item in [os.path.join(target_dir, folder) for folder in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, folder))]:
+            if folder_name == os.path.basename(item):
+                return item
+            addr = folder_in_directory_tree(item, folder_name, depth=depth+1)
+            if addr:
+                return addr
+        return False
+    except:
+        return False
+
+def is_directory_in_parents(target_directory, directory_name):
+    current_path = os.path.abspath(target_directory)
+    
+    while True:
+        parent_path, current_dir = os.path.split(current_path)
+        if current_dir == directory_name:
+            return os.path.join(current_path)
+        if not parent_path or parent_path == current_path:
+            # Reached the root directory
+            break
+        current_path = parent_path
+    
+    return False
+
 
 class GameLauncher:
     def __init__(self, root):
@@ -35,6 +82,10 @@ class GameLauncher:
 
         self.setup_ui()
 
+        new_version = self.newVersionAvailable()
+        if new_version:
+            if messagebox.askyesno("Update available", f"New version available: {new_version.full_format}.\nDo you want to download it?"):
+                self.donwload_update()
     def setup_ui(self):
         try:
             open(launcher_data_file, "r")
@@ -51,18 +102,6 @@ class GameLauncher:
         title_label = ttk.Label(self.root, text="Minecraft 2D Launcher", font=("Arial", 18))
         title_label.pack(pady=10)
 
-        # Version Selection
-        version_frame = ttk.LabelFrame(self.root, text="Select Game Version")
-        version_frame.pack(fill="x", padx=10, pady=10)
-
-        self.version_var = tk.StringVar()
-        self.version_dropdown = ttk.Combobox(
-            version_frame, textvariable=self.version_var, state="readonly"
-        )
-        self.version_dropdown["values"] = [*self.game_versions_names]  # Example versions
-        self.version_dropdown.pack(pady=5, padx=10)
-        self.version_dropdown.current(game_version_last_played%(len(self.game_versions)+1))
-
         # Auth Token
         auth_frame = ttk.LabelFrame(self.root, text="Authentication")
         auth_frame.pack(fill="x", padx=10, pady=10)
@@ -77,8 +116,20 @@ class GameLauncher:
         update_button = ttk.Button(self.root, text="Get Updates", command=self.make_update)
         update_button.pack(pady=5)
 
+        # Version Selection
+        version_frame = ttk.LabelFrame(self.root, text="Select Game Version")
+        version_frame.pack(fill="x", padx=10, pady=10)
+
+        self.version_var = tk.StringVar()
+        self.version_dropdown = ttk.Combobox(
+            version_frame, textvariable=self.version_var, state="readonly"
+        )
+        self.version_dropdown["values"] = [*self.game_versions_names]  # Example versions
+        self.version_dropdown.pack(pady=5, padx=10)
+        self.version_dropdown.current(game_version_last_played%(len(self.game_versions)+1))
+
         # Launch Button
-        launch_button = ttk.Button(self.root, text="Launch Game", command=self.launch_game)
+        launch_button = ttk.Button(version_frame, text="Launch Game", command=self.launch_game)
         launch_button.pack(pady=20)
 
         # Status Label
@@ -88,6 +139,12 @@ class GameLauncher:
         status_label.pack(pady=10)
 
     def make_update(self):
+        # print("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))
+        
+        #TK puts \n at end of ScrolledText. thets reason for '[:-1]' down below vvvvvvvvvvvvvvvv
+        if self.newVersionAvailable() == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
+            messagebox.showwarning("Warning", f"Newest version already installed: {self.getCurentVersion()}\n(You can bypass this by typing '!force_update' into auth box.)\nAborting.")
+            return
         if messagebox.askokcancel("Update info", "Update will earse all data except for the 'saves' folder.\nDo you want to continue?"):
             # choice = messagebox.askquestion(
             #     "Directory Choice",
@@ -99,7 +156,7 @@ class GameLauncher:
             #     folder = filedialog.askdirectory(title="Choose")
             #     if folder:
             #         dir = folder
-            print(os.listdir(os.path.join(os.path.dirname(__file__), "../.update/")))
+            # print(os.listdir(os.path.join(os.path.dirname(__file__), "../.update/")))
             # return
             self.donwload_update(os.path.join(os.path.dirname(__file__), "../"))
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
@@ -109,9 +166,9 @@ class GameLauncher:
         """ Placeholder for getting auth token. """
         messagebox.showinfo("Info", "Auth token functionality not implemented yet.")
 
-    def download_version(self, version):
-        """ Placeholder for downloading a game version. """
-        pass
+    # def download_version(self, version):
+    #     """ Placeholder for downloading a game version. """
+    #     pass
 
     def launch_game(self):
         selected_version = self.version_var.get()
@@ -130,10 +187,20 @@ class GameLauncher:
             while game_status.poll() is None:
                 time.sleep(1)
             self.status_var.set("Status: Ready")
-            os.chdir(os.path.join(os.getcwd(), ".."))
+            os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
         else:
             messagebox.showwarning("Warning", "No version selected!")
-    def getCurentVersion(self, gameDir=os.path.join(os.cwd(), "..")):
+    def newVersionAvailable(self):
+        if "version.txt" in os.listdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
+            current_version = Version(self.getCurentVersion())
+            latest_vesrion = Version(self.getLatestCommitVersion())
+            if latest_vesrion.iAmHigher(current_version):
+                return latest_vesrion
+            else:
+                return False
+        else:
+            print(f"\n\n\nError loking for version.txt\nDirectory:{os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")}\n\n\n")
+    def getCurentVersion(self, gameDir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
         if os.path.exists(gameDir):
             if "version.txt" in os.listdir(gameDir):
                 try:
@@ -148,12 +215,12 @@ class GameLauncher:
         else:
             return None
             
-    def getLatestCommitVersion():
-        url = "https://example.com"
+    def getLatestCommitVersion(self):
+        url = "https://raw.githubusercontent.com/Hacaric/Minecraft-2D-Clone/refs/heads/main/version.txt"
         response = requests.get(url)
         if response.status_code == 200:
             try:
-                return response.content
+                return response.content.decode("utf-8")
             except Exception as e:
                 print(f"\nError accesing current version: {e}\n")
                 return "0.0.0-snapshot"

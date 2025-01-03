@@ -1,0 +1,1 @@
+Do not delete this folder. It helps installer (and maybe other scripts) to find Miencraft2D directory.

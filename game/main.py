@@ -850,7 +850,7 @@ def check_gui_interaction():
         if load_world_button.is_pressed:
             open_menu("open_world_menu_oppened")
     elif menus["options_menu_oppened"]:
-        x = debug_mode_switch.is_pressed
+        x = debug_mode_switch.current_state
         if x[0]:
             debug_mode = x[1]
         if done_back_to_main_button.is_pressed:

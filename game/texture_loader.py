@@ -103,13 +103,13 @@ block_texture_id = {name: i for i, name in enumerate(block_names)}
 # Constants
 item_size = 0
 default_void_colour = "#ccd8ff"  # rgba(204,216,255,255)
-texture_folder = "assets/textures/blocks/"
-sound_folder = "assets/sounds/blocks/"
-music_folder = "assets/music/"
-cursor_folder = "assets/textures/cursor/"
-gui_folder = "assets/textures/GUI/"
-player_folder = "assets/textures/player/"
-health_bar_folder = "assets/textures/GUI/bars/Health"
+texture_folder = "./assets/textures/blocks/"
+sound_folder = "./assets/sounds/blocks/"
+music_folder = "./assets/music/"
+cursor_folder = "./assets/textures/cursor/"
+gui_folder = "./assets/textures/GUI/"
+player_folder = "./assets/textures/player/"
+health_bar_folder = "./assets/textures/GUI/bars/Health/"
 player_textures = {}
 
 #--------TEXTURE LOADING-----------
@@ -194,6 +194,8 @@ def load_sound_effects():
         exit()
 
 def load_textures_and_sounds(block_size, block_size_add):
+    from os import chdir, path
+    chdir(path.dirname(__file__))
     global item_size
     item_size = block_size/8*7
     

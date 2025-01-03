@@ -123,7 +123,7 @@ if True: #DEFINITION OF VARIABLES
     world_name_input =          TextInput(width // 2 - 200,    270,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), placeholder="World name", font_size=35, maxlen = 15)
     chat_input =                TextInput(10,   hotbar_height,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), placeholder="", font_size=35, maxlen = 15)
     game_mode_switch =          SwitchButton(width // 2 - 200, 340,        190, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), ["Creative", "Survival"], return_data = [0,1])
-    debug_mode_switch =         SwitchButton(width // 2 - 200, 340,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), ["Debug mode on", "Debug mode off"], return_data = [True,False], current_state=0 if debug_mode else 1)
+    debug_mode_switch =         SwitchButton(width // 2 - 200, 340,        400, 50, pygame.transform.scale(gui_textures["button"], (200, 50)), ["Debug mode off", "Debug mode on"], return_data = [True,False], current_state=0 if debug_mode else 1)
 
     #section:ui
     ui_colour = (0,0,0)#(255, 255, 255)
@@ -493,8 +493,8 @@ def handle_events():
             key_dict[event.key] = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                mouse_r_click = not mouse_l
-                mouse_l = True
+                mouse_r_click = not mouse_r
+                mouse_r = True
                 # if menus["ingame_main_menu_oppened"]:
                 #     mouse_x, mouse_y = pygame.mouse.get_pos()
                 #     button_rect = pygame.Rect(width // 2 - 100, height // 2 - 25, 200, 50)
@@ -509,9 +509,9 @@ def handle_events():
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 mouse_r_click = False
-                mouse_l = False
-            elif event.button == 3:
                 mouse_r = False
+            elif event.button == 3:
+                mouse_l = False
         if key_dict[pygame.K_ESCAPE]:
             if not (esc_delay or overworld is None):
                 if menus["ingame_main_menu_oppened"]:
@@ -540,7 +540,7 @@ def handle_events():
     if key_dict[pygame.K_F3]:
         global debug_mode
         debug_mode = not debug_mode
-        debug_mode_switch.current_state = True
+        debug_mode_switch.current_state = 1 if debug_mode else 0
         key_dict[pygame.K_F3] = False 
     if key_dict[pygame.K_SEMICOLON]:
         running = False
@@ -850,9 +850,8 @@ def check_gui_interaction():
         if load_world_button.is_pressed:
             open_menu("open_world_menu_oppened")
     elif menus["options_menu_oppened"]:
-        x = debug_mode_switch.current_state
-        if x[0]:
-            debug_mode = x[1]
+        x = debug_mode_switch.current_state==1
+        debug_mode = x
         if done_back_to_main_button.is_pressed:
             open_menu("ingame_main_menu_oppened")
     elif menus["create_world_menu_oppened"]:
@@ -954,9 +953,9 @@ def render_gui():
     global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_r_click, update_frame_once, current_world_name, debug_mode
 
     if menus["ingame_main_menu_oppened"]:
-        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 200))
-        screen.blit(overlay, (0, 0))
+        overall = pygame.Surface((width, height), pygame.SRCALPHA)
+        overall.fill((0, 0, 0, 200))
+        screen.blit(overall, (0, 0))
         back_button.render(screen, mouse_r_click)
         quit_button.render(screen, mouse_r_click)
         save_world_button.render(screen, mouse_r_click, text="Save")
@@ -970,9 +969,9 @@ def render_gui():
         new_world_button.render(screen, mouse_r_click)
         load_world_button.render(screen, mouse_r_click, y=340, width=400)
     elif menus["options_menu_oppened"]:
-        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 200))
-        screen.blit(overlay, (0, 0))
+        overall = pygame.Surface((width, height), pygame.SRCALPHA)
+        overall.fill((0, 0, 0, 200))
+        screen.blit(overall, (0, 0))
         debug_mode_switch.render(screen, mouse_r_click)
         done_back_to_main_button.render(screen, mouse_r_click)
     elif menus["create_world_menu_oppened"]:

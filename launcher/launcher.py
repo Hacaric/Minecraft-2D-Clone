@@ -44,7 +44,7 @@ class Version:
             self.micro:int = int(numeric[2])
             self.commit:int = int(numeric[3])
             self.full_format:str = info
-    def iAmHigher(self, other):
+    def iAmHigher(self, other, count_comit=False):
         if self.major > other.major:
             return True
         elif self.major == other.major:
@@ -53,6 +53,9 @@ class Version:
             elif self.minor == other.minor:
                 if self.micro > other.micro:
                     return True
+                elif self.micro == other.micro:
+                    if self.commit > other.commit and count_comit:
+                        return True
         return False
 def folder_in_directory_tree(target_dir, folder_name, depth=0):
     try:
@@ -152,7 +155,7 @@ class GameLauncher:
         # print("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))
         
         #TK puts \n at end of ScrolledText. That's reason for '[:-1]' down below vvvvvvvvvvvvvvvv
-        if self.checkForUpdates() == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
+        if self.checkForUpdates(count_comit=True) == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
             messagebox.showwarning("Warning", f"Newest version already installed: {self.getCurrentVersion()}\n(You can bypass this by typing '!force_update' into auth box.)\nAborting.")
             return
         if messagebox.askokcancel("Update info", "Update will erase all data except for the 'saves' folder.\nDo you want to continue?"):
@@ -200,11 +203,11 @@ class GameLauncher:
             os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
         else:
             messagebox.showwarning("Warning", "No version selected!")
-    def checkForUpdates(self):
+    def checkForUpdates(self, count_comit=False):
         if "version.txt" in os.listdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
             current_version = Version(self.getCurrentVersion())
             latest_version = Version(self.getLatestCommitVersion())
-            if latest_version.iAmHigher(current_version):
+            if latest_version.iAmHigher(current_version, count_comit=count_comit):
                 return latest_version
             else:
                 return False

@@ -17,8 +17,8 @@ import time
 import threading
 import gameExceptions
 from textinput import TextInput, margin
-import socket_.client as socket_client
-import socket
+# import socket_.client as socket_client
+# import socket
 
 from main_variables import *
 

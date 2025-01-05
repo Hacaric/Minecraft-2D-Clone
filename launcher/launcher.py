@@ -21,19 +21,29 @@ from zipfile import ZipFile
 import os
 import shutil
 
+from typing import Final as const
 
 
 launcher_data_template = '{"version": 1, "game_versions": {"latest": "./game/"}, "game_version_last_played": 0}'
 launcher_data_file = os.path.join(os.path.dirname( __file__ ), 'launcher_config.json')
+empty_version:const[str] = "0.0.0.0-snapshot"
 class Version:
     def __init__(self, info:str):
         #info format: {major}.{minor}.{micro}-{type}
-        self.type:str = info.split("-")[-1] #release, snapshot, prerelease
+        self.type:int = info.split("-")[-1] #release, snapshot, prerelease
         numeric = info.split("-")[0].split(".")
-        self.major:int = int(numeric[0])
-        self.minor:int = int(numeric[1])
-        self.micro:int = int(numeric[2])
-        self.full_format:str = info
+        if len(numeric) <= 3:
+            self.major:int = 0
+            self.minor:int = 0
+            self.micro:int = 0
+            self.commit:int = 0
+            self.full_format:str = "0.0.0.0-snapshot"
+        else:
+            self.major:int = int(numeric[0])
+            self.minor:int = int(numeric[1])
+            self.micro:int = int(numeric[2])
+            self.commit:int = int(numeric[3])
+            self.full_format:str = info
     def iAmHigher(self, other):
         if self.major > other.major:
             return True
@@ -82,7 +92,7 @@ class GameLauncher:
 
         self.setup_ui()
 
-        new_version = self.newVersionAvailable()
+        new_version = self.checkForUpdates()
         if new_version:
             if messagebox.askyesno("Update available", f"New version available: {new_version.full_format}.\nDo you want to download it?"):
                 self.download_update()
@@ -142,7 +152,7 @@ class GameLauncher:
         # print("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))
         
         #TK puts \n at end of ScrolledText. That's reason for '[:-1]' down below vvvvvvvvvvvvvvvv
-        if self.newVersionAvailable() == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
+        if self.checkForUpdates() == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
             messagebox.showwarning("Warning", f"Newest version already installed: {self.getCurrentVersion()}\n(You can bypass this by typing '!force_update' into auth box.)\nAborting.")
             return
         if messagebox.askokcancel("Update info", "Update will erase all data except for the 'saves' folder.\nDo you want to continue?"):
@@ -190,7 +200,7 @@ class GameLauncher:
             os.chdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
         else:
             messagebox.showwarning("Warning", "No version selected!")
-    def newVersionAvailable(self):
+    def checkForUpdates(self):
         if "version.txt" in os.listdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
             current_version = Version(self.getCurrentVersion())
             latest_version = Version(self.getLatestCommitVersion())
@@ -210,8 +220,8 @@ class GameLauncher:
                     print("Error", e)
             else:
                 with open(os.path.join(gameDir, "version.txt"), "w") as file:
-                    file.write("0.0.0-snapshot")
-                return "0.0.0-snapshot"
+                    file.write(empty_version)
+                return empty_version
         else:
             return None
             

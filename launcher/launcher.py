@@ -261,7 +261,7 @@ class GameLauncher:
             return False
 
 
-        NOT_DELETE_DIR = ["saves", "launcher"]
+        NOT_DELETE_DIR = ["saves"]
 
         # GitHub repository URL
         repository_name = 'Minecraft-2D-Clone'

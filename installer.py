@@ -61,7 +61,7 @@ def choose_installation_directory(title="Select Installation Directory"):
     if folder:
         return folder
     else:
-        print("error choosing file (line 39)")
+        raise Exception("No file choosen")
 
 def run_launcher():
     starting_game_folder = choose_installation_directory(title="Select Game Directory")

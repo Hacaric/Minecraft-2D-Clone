@@ -174,7 +174,6 @@ class GameLauncher:
             self.download_update(os.path.join(os.path.dirname(__file__), "../"))
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
             subprocess.Popen([python_shell_command, __file__])
-            exit(1)
     def get_auth_token(self):
         """ Placeholder for getting auth token. """
         messagebox.showinfo("Info", "Auth token functionality not implemented yet.")
@@ -344,7 +343,10 @@ class GameLauncher:
             if os.path.exists(os.path.join(old_files_path, folder_name)):
                 print(f"|---Updating folder {os.path.join(old_files_path, folder_name)}")
                 shutil.rmtree(os.path.join(old_files_path, folder_name))
-            os.makedirs(os.path.join(old_files_path,folder_name))
+            try:
+                os.makedirs(os.path.join(old_files_path,folder_name))
+            except:
+                pass
             os.rename(
                 os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,folder_name), 
                 os.path.join(old_files_path,folder_name)

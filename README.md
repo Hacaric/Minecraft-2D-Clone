@@ -4,9 +4,7 @@
 </br>
 
 **Minecraft 2D is a Python recreation of the Scratch project Paper Minecraft by Griffpatch.
-It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and inventory are still in development.
-It runs at 30fps; once I finish new rendering, it should be able to run at 60fps.
-I'm currently working on multiplayer mode.**</br></br>
+It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and inventory are still in development.**</br></br>
 If you are reading this please share :D - I'm glad if anybody reads this.</br>
 
 ***
@@ -43,8 +41,9 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 <tr><td>Jump</td><td>W</td></tr>
 <tr><td>Pause</td><td>Esc</td></tr>
 <tr><td>Select item from hotbar</td><td>Middle mouse button (scrolling)</td></tr>
-<tr><td>F1</td><td>Hide UI</td></tr>
+<tr><td>F1</td><td>Toogle UI visibility</td></tr>tree.get(tree.find('Create World Options'))
 <tr><td>F3</td><td>Toogle Debug mode</td></tr>
+<tr><td>;</td><td>Hard-crash game</td></tr>
 </table>
 
 ## Features:

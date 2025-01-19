@@ -218,8 +218,8 @@ def open_menu(menu:str, all_other_false = True, disable_mouse_click = True, notr
             if i != menu:
                 menus[i] = False
     if disable_mouse_click:
-        global mouse_r_click
-        mouse_r_click = False
+        global mouse_l_click
+        mouse_l_click = False
         #print("mouse_r_click is false")
     # if not notraise:
     #     raise gameExceptions.MenuClosed
@@ -335,7 +335,7 @@ def try_place_block(world, x, y, id):
             send_to_server("01", x, y, id)
 #-----------BLOCK PLACEMENT END------------
 def handle_events():
-    global events, running, mouse_l, t_key_delay, mouse_r_click, mouse_r, selected_in_hotbar, ain_menu_oppened, esc_delay, menus
+    global events, running, mouse_r, t_key_delay, mouse_l_click, mouse_l, selected_in_hotbar, ain_menu_oppened, esc_delay, menus
     events = pygame.event.get()
     for event in events:
         if event.type == pygame.QUIT:
@@ -346,8 +346,8 @@ def handle_events():
             key_dict[event.key] = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                mouse_r_click = not mouse_r
-                mouse_r = True
+                mouse_l_click = not mouse_l
+                mouse_l = True
                 # if menus["ingame_main_menu_oppened"]:
                 #     mouse_x, mouse_y = pygame.mouse.get_pos()
                 #     button_rect = pygame.Rect(width // 2 - 100, height // 2 - 25, 200, 50)
@@ -359,26 +359,25 @@ def handle_events():
                 selected_in_hotbar = (selected_in_hotbar - 1) % 9
             elif event.button == 5 and not(is_game_paused()):  # Scroll down
                 selected_in_hotbar = (selected_in_hotbar + 1) % 9
+            
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
-                mouse_r_click = False
-                mouse_r = False
-            elif event.button == 3:
+                mouse_l_click = False
                 mouse_l = False
+            elif event.button == 3:
+                mouse_r = False
         if key_dict[pygame.K_ESCAPE]:
             if not (esc_delay or overworld is None):
                 if menus["ingame_main_menu_oppened"]:
-                    menus["ingame_main_menu_oppened"] = False
+                    open_menu("None")
                 elif menus["options_menu_oppened"]:
-                    menus["options_menu_oppened"] = False
-                    menus["ingame_main_menu_oppened"] = True
+                    open_menu("ingame_main_menu_oppened")
                 elif menus["chat_input_oppened"]:
                     open_menu("None")
                 else:
-                    menus["ingame_main_menu_oppened"] = True
+                    print("ATHATHAETHD")
+                    open_menu("ingame_main_menu_oppened")
                 esc_delay = True
-        elif esc_delay:
-            esc_delay = False
         if key_dict[pygame.K_t]:
             if (not menus["chat_input_oppened"]) and (not t_key_delay):
                 menus["chat_input_oppened"] = True
@@ -397,6 +396,7 @@ def handle_events():
         key_dict[pygame.K_F3] = False 
     if key_dict[pygame.K_SEMICOLON]:
         running = False
+    esc_delay = key_dict[pygame.K_ESCAPE]
 def handle_player_movement():
     global velocityY, player_movement_leg_angle, last_player_pos
     last_player_x = overworld.main_player.x
@@ -443,7 +443,7 @@ def handle_player_movement():
     if multiplayer_mode and (overworld.main_player.x != last_player_pos[0] or  overworld.main_player.y != last_player_pos[1] or overworld.main_player.angle != last_player_pos[2]):
         send_to_server("00", overworld.main_player.x, overworld.main_player.y, overworld.main_player.angle)
         last_player_pos = [overworld.main_player.x, overworld.main_player.y, overworld.main_player.angle]
-def update_camera():
+def update_camera_pos():
     global camx, camy, camera
     camx = overworld.main_player.x
     camy = overworld.main_player.y
@@ -674,7 +674,7 @@ def set_world(world):
     global overworld
     overworld = world
 def check_gui_interaction():
-    global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_r_click, update_frame_once, current_world_name, debug_mode
+    global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_l_click, update_frame_once, current_world_name, debug_mode
 
     mouse_x, mouse_y = pygame.mouse.get_pos()
     if menus["ingame_main_menu_oppened"]:
@@ -803,50 +803,50 @@ def check_gui_interaction():
             open_menu("None")
 def render_gui():
 
-    global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_r_click, update_frame_once, current_world_name, debug_mode
+    global overworld, multiplayer_mode, player, mouse_x, mouse_y, running, menus, mouse_l_click, update_frame_once, current_world_name, debug_mode
 
     if menus["ingame_main_menu_oppened"]:
         overall = pygame.Surface((width, height), pygame.SRCALPHA)
         overall.fill((0, 0, 0, 200))
         screen.blit(overall, (0, 0))
-        back_button.render(screen, mouse_r_click)
-        quit_button.render(screen, mouse_r_click)
-        save_world_button.render(screen, mouse_r_click, text="Save")
-        options_button.render(screen, mouse_r_click)
+        back_button.render(screen, mouse_l_click)
+        quit_button.render(screen, mouse_l_click)
+        save_world_button.render(screen, mouse_l_click, text="Save")
+        options_button.render(screen, mouse_l_click)
     elif menus["main_menu_oppened"]:
         screen.blit(gui_textures["main_manu_background"], [0,0])
         #COMING SOON
         # if multiplayer_menu_button.render(screen, mouse_r_click):
         #     open_menu("multiplayer_menu_oppened")  #TODO - work in progress :D
-        quit_button.render(screen, mouse_r_click)
-        new_world_button.render(screen, mouse_r_click)
-        load_world_button.render(screen, mouse_r_click, y=340, width=400)
+        quit_button.render(screen, mouse_l_click)
+        new_world_button.render(screen, mouse_l_click)
+        load_world_button.render(screen, mouse_l_click, y=340, width=400)
     elif menus["options_menu_oppened"]:
         overall = pygame.Surface((width, height), pygame.SRCALPHA)
         overall.fill((0, 0, 0, 200))
         screen.blit(overall, (0, 0))
-        debug_mode_switch.render(screen, mouse_r_click)
-        done_back_to_main_button.render(screen, mouse_r_click)
+        debug_mode_switch.render(screen, mouse_l_click)
+        done_back_to_main_button.render(screen, mouse_l_click)
     elif menus["create_world_menu_oppened"]:
         screen.blit(gui_textures["main_manu_background"], [0,0])
-        world_name_input.render(screen, events, [mouse_x, mouse_y, mouse_r_click], return_text=True)
-        game_mode_switch.render(screen, mouse_r_click)[1]
-        done_back_to_main_button.render(screen, mouse_r_click, x=width // 2 + 10, width=190)
-        back_button.render(screen, mouse_r_click, x=width // 2 - 200, width=190, y=height - 200, text="Back")
+        world_name_input.render(screen, events, [mouse_x, mouse_y, mouse_l_click], return_text=True)
+        game_mode_switch.render(screen, mouse_l_click)[1]
+        done_back_to_main_button.render(screen, mouse_l_click, x=width // 2 + 10, width=190)
+        back_button.render(screen, mouse_l_click, x=width // 2 - 200, width=190, y=height - 200, text="Back")
     elif menus["file_menu_oppened"]:
-        save_world_button.render(screen, mouse_r_click)
-        load_world_button.render(screen, mouse_r_click)
-        update_world_button.render(screen, mouse_r_click)
-        done_back_to_main_button.render(screen, mouse_r_click)
+        save_world_button.render(screen, mouse_l_click)
+        load_world_button.render(screen, mouse_l_click)
+        update_world_button.render(screen, mouse_l_click)
+        done_back_to_main_button.render(screen, mouse_l_click)
     elif menus["multiplayer_menu_oppened"]:
         screen.blit(gui_textures["main_manu_background"], [0,0])
-        server_ip_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_r_click])
-        nickname_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_r_click])
-        done_back_to_main_button.render(screen, mouse_r_click, width=190, x=400)
-        back_button.render(screen, mouse_r_click, text="Cancel", width=190, x=200, y=height - 200)
+        server_ip_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_l_click])
+        nickname_input.render(screen, events, return_text=True, collision = [mouse_x, mouse_y, mouse_l_click])
+        done_back_to_main_button.render(screen, mouse_l_click, width=190, x=400)
+        back_button.render(screen, mouse_l_click, text="Cancel", width=190, x=200, y=height - 200)
     elif menus["open_world_menu_oppened"]:
         screen.blit(gui_textures["main_manu_background"], [0,0])
-        done_back_to_main_button.render(screen,mouse_r_click)
+        done_back_to_main_button.render(screen,mouse_l_click)
         world_files_list = list_world_files()
         for i in range(len(world_files_list)):
             try:
@@ -855,7 +855,7 @@ def render_gui():
             except:
                 continue
             if i > 4:
-                if load_world_button.render(screen, mouse_r_click, x=width // 2 + 10, y = (i-5)*70 + 50, text = world_files_list[i]):
+                if load_world_button.render(screen, mouse_l_click, x=width // 2 + 10, y = (i-5)*70 + 50, text = world_files_list[i]):
                     try:
                         print("Loading world: ", world_files_list[i])
                         load_world(world_files.load_data(world_files_list[i]))
@@ -868,7 +868,7 @@ def render_gui():
                     except:
                         print("Error loading world", world_files_list[i])
             else:
-                if load_world_button.render(screen, mouse_r_click, y = i*70 + 50, text = world_files_list[i]):
+                if load_world_button.render(screen, mouse_l_click, y = i*70 + 50, text = world_files_list[i]):
                     print("Loading world: ", world_files_list[i])
                     try:
                         load_world(world_files.load_data(world_files_list[i]))
@@ -883,7 +883,7 @@ def render_gui():
     elif menus["update_world_menu_oppened"]:
         raise gameExceptions.MenuNotExist
     elif menus["chat_input_oppened"]:
-        chat_input.render(screen, events, [mouse_x, mouse_y, mouse_r_click])
+        chat_input.render(screen, events, [mouse_x, mouse_y, mouse_l_click])
 def check_timer():
     
     global last_timer_value, timer
@@ -906,7 +906,7 @@ def run():
     GUI_TPS = 30
     GUI_TICK_DEFAULT_WAITING_TIME = 1/GUI_TPS
     def TICK_THREAT():
-        global events, overworld, BREAK_BLOCK, phase, mouse_r_click
+        global events, overworld, BREAK_BLOCK, phase, mouse_l_click
         LAST_TICK = -1
         GUI_LAST_TICK = -1
         while running:
@@ -934,7 +934,8 @@ def run():
     TICK_THREAD_.start()
     while running:
         if not (menus["create_world_menu_oppened"] or menus["open_world_menu_oppened"] or menus["update_world_menu_oppened"] or menus["main_menu_oppened"] or menus["multiplayer_menu_oppened"]):
-            update_camera()
+            if not is_game_paused():
+                update_camera_pos()
             render_world()
             render_players()
             cursor_block_x, cursor_block_y = handle_cursor_and_block_breaking(is_game_paused())

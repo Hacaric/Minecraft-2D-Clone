@@ -134,7 +134,7 @@ if True: #DEFINITION OF VARIABLES
     clock = pygame.time.Clock()
     mouse_l = False
     mouse_r = False
-    mouse_r_click = False
+    mouse_l_click = False
     events = pygame.event.get()
     last_placed_tick = -1
     placement_delay = 1

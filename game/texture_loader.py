@@ -1,6 +1,7 @@
 import pygame
 import random
 import gameExceptions
+import os
 
 # Texture and sound data
 #block_names = ["air", "sand", "cobblestone", "stone", "bedrock", "grass", "dirt", "plank", "glass", "wood", "leaves", "short_grass"]
@@ -173,7 +174,7 @@ def load_health_bar_textures():
     try:
         health_bar = {}
         for key, file_path in health_bar_files.items():
-            health_bar[key] = pygame.transform.scale(pygame.image.load(health_bar_folder + "/" + file_path).convert_alpha(), (300, 32))
+            health_bar[key] = pygame.transform.scale(pygame.image.load(os.path.join(health_bar_folder, file_path)).convert_alpha(), (300, 32))
         
         print(f"Loaded {len(health_bar)} health bar textures.")
         return health_bar

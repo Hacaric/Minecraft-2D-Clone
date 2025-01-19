@@ -206,6 +206,14 @@ def install_game(game_folder):
         log_message(f"Failed cleaning, repository probably contained directory. Error: {e}")
         exit(1)
     log_message("\nUpdated successfully.")
+    # if messagebox.askyesno("Send statistic data?", "Send statistic data?\n- OS"):
+    #     subject = "Test Email"
+    #     body = "This is a test email sent using sendmail."
+    #     sender_email = "your-email@example.com"
+    #     recipient_email = "recipient@example.com"
+    #     email_message = f"Subject: {subject}\nFrom: {sender_email}\nTo: {recipient_email}\n\n{body}"
+    #     with os.popen("/usr/sbin/sendmail -t", "w") as sendmail:
+    #         sendmail.write(email_message)
     if messagebox.askyesno("Installation info.", "Installed successfully.\nRun launcher?"):
         run_launcher()
         exit(1)#TODO

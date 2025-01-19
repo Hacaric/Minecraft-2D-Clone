@@ -174,6 +174,7 @@ class GameLauncher:
             self.download_update(os.path.join(os.path.dirname(__file__), "../"))
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
             subprocess.Popen([python_shell_command, __file__])
+            exit(0)
     def get_auth_token(self):
         """ Placeholder for getting auth token. """
         messagebox.showinfo("Info", "Auth token functionality not implemented yet.")

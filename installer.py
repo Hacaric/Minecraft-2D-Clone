@@ -61,10 +61,12 @@ def choose_installation_directory(title="Select Installation Directory"):
     if folder:
         return folder
     else:
-        raise Exception("No file choosen")
+        return None
 
 def run_launcher():
     starting_game_folder = choose_installation_directory(title="Select Game Directory")
+    if starting_game_folder is None:
+        return
     log_message("Looking for directory...")
     if os.path.basename(starting_game_folder) == GAME_IDENTIFIER:
         game_folder = starting_game_folder
@@ -87,7 +89,8 @@ def install_game(game_folder):
     from zipfile import ZipFile
     import os
     import shutil
-
+    if game_folder is None:
+        return
     if messagebox.askyesno("Create folder?", f"Create folder named {GAME_FOLDER_NAME}? (if not, app will be installed directly into chosen directory.)"):
         
         os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")

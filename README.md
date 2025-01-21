@@ -41,7 +41,7 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 <tr><td>Jump</td><td>W</td></tr>
 <tr><td>Pause</td><td>Esc</td></tr>
 <tr><td>Select item from hotbar</td><td>Middle mouse button (scrolling)</td></tr>
-<tr><td>F1</td><td>Toogle UI visibility</td></tr>tree.get(tree.find('Create World Options'))
+<tr><td>F1</td><td>Toogle UI visibility</td></tr>
 <tr><td>F3</td><td>Toogle Debug mode</td></tr>
 <tr><td>;</td><td>Hard-crash game</td></tr>
 </table>

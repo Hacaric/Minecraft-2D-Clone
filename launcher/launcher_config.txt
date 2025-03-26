@@ -1,0 +1,4 @@
+rate_this_feature:123548
+fun:1
+light_mode:1
+fps_limit:100

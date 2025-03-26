@@ -23,9 +23,9 @@ import shutil
 
 from typing import Final as const
 
-
+launcher_config_file = os.path.join(os.path.dirname( __file__ ), 'launcher_config.txt')
 launcher_data_template = '{"version": 1, "game_versions": {"latest": "./game/"}, "game_version_last_played": 0}'
-launcher_data_file = os.path.join(os.path.dirname( __file__ ), 'launcher_config.json')
+launcher_data_file = os.path.join(os.path.dirname( __file__ ), 'launcher_data.json')
 empty_version:const[str] = "0.0.0.0-snapshot"
 class Version:
     def __init__(self, info:str):
@@ -84,14 +84,37 @@ def is_directory_in_parents(target_directory, directory_name):
         current_path = parent_path
     
     return False
+def load_config(config_file_name):
+    # try:
+        with open(config_file_name, "r") as file:
+            data = file.read().split("\n")
+        config = {}
+        for line in data:
+            try:
+                if (not line.startswith("#")) and (line != ""):
+                    config[line.split(":")[0]] = int(line.split(":")[1]) if line.split(":")[1].isdigit() else line.split(":")[1]
+            except:
+                pass
+        return config
+    # except Exception as e:
+    #     print(f"Error loading config file: {e}")
+    #     return None
 
+def parse_config(config:dict):
+    data = []
+    for key in config.keys():
+        data.append(f"{key}:{config[key]}")
+    return "\n".join(data)
 
 class GameLauncher:
     def __init__(self, root):
+        self.config = load_config(launcher_config_file)
+        print(type(self.config))
+        print(self.config)
         os.chdir(os.path.join(os.path.dirname( __file__ )))
         self.root = root
         self.root.title("Minecraft 2D Launcher")
-        self.root.geometry("600x400")
+        self.root.geometry("700x480")
 
         self.setup_ui()
 
@@ -114,6 +137,8 @@ class GameLauncher:
         # Title Label
         title_label = ttk.Label(self.root, text="Minecraft 2D Launcher", font=("Arial", 18))
         title_label.pack(pady=10)
+
+
 
         # Auth Token
         auth_frame = ttk.LabelFrame(self.root, text="Authentication")
@@ -145,11 +170,73 @@ class GameLauncher:
         launch_button = ttk.Button(version_frame, text="Launch Game", command=self.launch_game)
         launch_button.pack(pady=20)
 
+        launch_button = ttk.Button(self.root, text="Setting", command=self.settings_window)
+        launch_button.pack(pady=20)
+
+        # launch_button = ttk.Button(self.root, text="Website", command=lambda:print("https://github.com/Hacaric/Minecraft-2D-Clone"))
+        # launch_button.pack(pady=20)
+
         # Status Label
         self.status_var = tk.StringVar()
         self.status_var.set("Status: Ready")
         status_label = ttk.Label(self.root, textvariable=self.status_var, font=("Arial", 10))
         status_label.pack(pady=10)
+
+    def save_config(self):
+        with open(launcher_config_file, "w") as file:
+            file.write(parse_config(self.config))
+
+    def settings_window(self):
+        def destroy(save=True):
+            if save:
+                try:
+                    self.config["fun"] = int(light_dark_var.get())
+                except:pass
+                try:
+                    self.config["rate_this_feature"] = int(fps_limit_var.get())
+                except:pass
+                self.save_config()
+            settings_window.destroy()
+        settings_window = tk.Toplevel(self.root)
+        settings_window.protocol("WM_DELETE_WINDOW", destroy)
+        settings_window.title("Settings")
+        settings_window.geometry("400x300")
+
+        settings_frame = ttk.LabelFrame(settings_window, text="Settings")
+        settings_frame.pack(padx=20, pady=20)
+
+        # Ratio Settings
+        ratio_frame = ttk.LabelFrame(settings_window, text="You will be able to 'set things' here!")
+        ratio_frame.pack(padx=20, pady=20)
+
+        # Dark/Light Mode
+        light_dark_var = tk.IntVar()
+        light_dark_var.set(int(self.config["fun"]))
+        light_dark_checkbutton = ttk.Checkbutton(ratio_frame, text="Had fun?", variable=light_dark_var)
+        light_dark_checkbutton.pack(pady=5)
+
+        # FPS Limit
+        fps_limit_var = tk.StringVar()
+        fps_limit_var.set(self.config["rate_this_feature"])
+        fps_limit_label = ttk.Label(ratio_frame, text="Rate this feature:")
+        fps_limit_label.pack()
+        fps_limit_entry = ttk.Entry(ratio_frame, textvariable=fps_limit_var, width=5)
+        fps_limit_entry.pack(pady=5)
+
+        cancel_button = ttk.Button(settings_window, text="Cancel", command=lambda:destroy(save=False))
+        cancel_button.pack(pady=5)
+        done_button = ttk.Button(settings_window, text="Done", command=destroy)
+        done_button.pack(pady=5)
+
+        # # Close Launcher when launching game
+        # close_launcher_var = tk.IntVar()
+        # close_launcher_var.set(int(self.config_data["close_launcher"]))
+        # close_launcher_checkbutton = ttk.Checkbutton(ratio_frame, text="Close Launcher when launching game", variable=close_launcher_var, command=lambda: self.config_data["close_launcher"] = str(close_launcher_var.get()))
+        # close_launcher_checkbutton.pack(pady=5)
+        try:
+            settings_window.mainloop()
+        except:
+            destroy(save=False)
 
     def make_update(self):
         # print("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))

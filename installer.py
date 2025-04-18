@@ -8,10 +8,67 @@
 python_shell_command = "python"
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-import os
-import shutil
-from tkinter import Tk, Label, Button, filedialog, messagebox, Text, Scrollbar, VERTICAL, RIGHT, Y, INSERT, DISABLED, NORMAL
-import subprocess
+depedencies_missing = []
+try:
+    import os
+except ImportError:
+    depedencies_missing.append("os")
+
+try:
+    import shutil
+except ImportError:
+    depedencies_missing.append("shutil")
+
+try:
+    import subprocess
+except ImportError:
+    depedencies_missing.append("subprocess")
+
+try:
+    from tkinter import (
+        Tk, Label, Button, filedialog, messagebox, Text, Scrollbar, VERTICAL, RIGHT, Y, INSERT, DISABLED, NORMAL
+    )
+except ImportError:
+    depedencies_missing.append("tkinter")
+
+try:
+    import requests
+except ImportError:
+    depedencies_missing.append("requests")
+
+try:
+    from zipfile import ZipFile
+except ImportError:
+    depedencies_missing.append("zipfile")
+
+if depedencies_missing:
+    print("Missing dependencies:")
+    for dep in depedencies_missing:
+        print(f"- {dep}")
+    print("Do you want us to install them for you? (using pip)")
+    option = input("y/n: ")
+    if option == "y":
+        for dep in depedencies_missing:
+            if dep == "os":
+                print("os is a built-in module and cannot be installed.")
+            elif dep == "shutil":
+                print("shutil is a built-in module and cannot be installed.")
+            elif dep == "tkinter":
+                print("tkinter is a built-in module and cannot be installed.")
+            elif dep == "subprocess":
+                print("subprocess is a built-in module and cannot be installed.")
+            elif dep == "requests":
+                print("Installing requests...")
+                subprocess.check_call([python_shell_command, "-m", "pip", "install", "requests"])
+                import requests
+                print("requests installed successfully.")
+            elif dep == "zipfile":
+                print("zipfile is a built-in module and cannot be installed.")
+            elif dep == "pip":
+                print("pip is a built-in module and cannot be installed.")
+    else:
+        print("Please install the missing dependencies manually.")
+        exit(1)
 
 # Define the source folder containing the game files
 GAME_FOLDER_NAME = "Minecraft_2D"
@@ -85,10 +142,6 @@ def run_launcher():
         exit(1)
 
 def install_game(game_folder):
-    import requests
-    from zipfile import ZipFile
-    import os
-    import shutil
     if game_folder is None:
         return
     if messagebox.askyesno("Create folder?", f"Create folder named {GAME_FOLDER_NAME}? (if not, app will be installed directly into chosen directory.)"):

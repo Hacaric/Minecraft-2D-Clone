@@ -41,6 +41,11 @@ try:
 except ImportError:
     depedencies_missing.append("zipfile")
 
+try:
+    from datetime import datetime
+except ImportError:
+    depedencies_missing.append("datetime")
+
 if depedencies_missing:
     print("Missing dependencies:")
     for dep in depedencies_missing:
@@ -64,6 +69,8 @@ if depedencies_missing:
                 print("requests installed successfully.")
             elif dep == "zipfile":
                 print("zipfile is a built-in module and cannot be installed.")
+            elif dep == "datetime":
+                print("datetime is a built-in module and cannot be installed.")
             elif dep == "pip":
                 print("pip is a built-in module and cannot be installed.")
     else:
@@ -145,8 +152,10 @@ def install_game(game_folder):
     if game_folder is None:
         return
     if messagebox.askyesno("Create folder?", f"Create folder named {GAME_FOLDER_NAME}? (if not, app will be installed directly into chosen directory.)"):
-        
-        os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")
+        try:
+            os.makedirs(f"{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/")
+        except Exception as e:
+            log_message(f"Failed creating directory {game_folder}/{GAME_FOLDER_NAME}/.update/update_files/ error: {e}")
         update_zip_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/version.zip'
         extract_path = f'{game_folder}/{GAME_FOLDER_NAME}/.update/update_files/'
         extract_only_this_folder_from_zip = "./"
@@ -195,7 +204,7 @@ def install_game(game_folder):
         log_message('File downloaded successfully')
     else:
         log_message('Failed to download file')
-        exit(1)
+        return "error"
 
     # Unzip the file
     log_message("Trying to unzip...")
@@ -205,7 +214,7 @@ def install_game(game_folder):
         log_message('Files unzipped successfully')
     except Exception as e:
         log_message(f'Failed to unzip files: {e}')
-        exit(1)
+        return "error"
 
     #Rename to repository name
 
@@ -229,26 +238,34 @@ def install_game(game_folder):
         new_files.remove(os.path.basename(__file__))
     except:
         print("Error removing installer.py from installation.")
-    for filename in new_files:
-        log_message(f"|---Updating file {filename}")
-        os.replace(
-            os.path.join(extract_path, repository_name, extract_only_this_folder_from_zip, filename),
-            os.path.join(old_files_path, filename)
-            )
-        #os.replace(f"{extract_path}{repository_name}/{filename}", old_files_path+filename)
+    try:
+        for filename in new_files:
+            log_message(f"|---Updating file {filename}")
+            os.replace(
+                os.path.join(extract_path, repository_name, extract_only_this_folder_from_zip, filename),
+                os.path.join(old_files_path, filename)
+                )
+            #os.replace(f"{extract_path}{repository_name}/{filename}", old_files_path+filename)
+    except Exception as e:
+        log_message(f"Failed copying files: {e}. Aborting...")
+        return "error"
 
     log_message("\nCopying folders...")
-    new_folders = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if not os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
-    for folder_name in new_folders:
-        if os.path.exists(os.path.join(old_files_path, folder_name)):
-            log_message(f"|---Updating folder {os.path.join(old_files_path, folder_name)}")
-            shutil.rmtree(os.path.join(old_files_path, folder_name))
-        os.makedirs(os.path.join(old_files_path,folder_name))
-        os.rename(
-            os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,folder_name), 
-            os.path.join(old_files_path,folder_name)
+    try:
+        new_folders = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if not os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
+        for folder_name in new_folders:
+            if os.path.exists(os.path.join(old_files_path, folder_name)):
+                log_message(f"|---Updating folder {os.path.join(old_files_path, folder_name)}")
+                shutil.rmtree(os.path.join(old_files_path, folder_name))
+            os.makedirs(os.path.join(old_files_path,folder_name))
+            os.rename(
+                os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,folder_name), 
+                os.path.join(old_files_path,folder_name)
 
-        )
+            )
+    except Exception as e:
+        log_message(f"Failed copying folders: {e}. Aborting...")
+        return "error"
 
     log_message("\nInstallation completed.")
     log_message("Cleaning up...")
@@ -260,7 +277,7 @@ def install_game(game_folder):
         os.makedirs(extract_path)
     except Exception as e:
         log_message(f"Failed cleaning, repository probably contained directory. Error: {e}")
-        exit(1)
+        return "error"
     log_message("\nUpdated successfully.")
     # if messagebox.askyesno("Send statistic data?", "Send statistic data?\n- OS"):
     #     subject = "Test Email"
@@ -273,7 +290,38 @@ def install_game(game_folder):
     if messagebox.askyesno("Installation info.", "Installed successfully.\nRun launcher?"):
         run_launcher()
         exit(1)#TODO
+def start_install_game(game_folder):
+    """Start the installation process."""
+    log_message("Starting installation...")
+    if install_game(game_folder) == "error":
+        messagebox.showerror("Error", "Installation failed. You can report this error on GitHub.")
+        log_message("Installation failed. Please report on https://github.com/Hacaric/Minecraft-2D-Clone/issues. Include all logs.")
+        return
+    else:
+        messagebox.showinfo("Success", "Installation completed successfully.")
+        return
 
+def copy_to_clipboard(text):
+    """Copy text to the clipboard."""
+    try:
+        root.clipboard_clear()
+        root.clipboard_append(text)
+        root.update()  # Keep the clipboard updated
+    except Exception as e:
+        log_message(f"Failed to copy to clipboard: {e}")
+def report_issues():
+    copy_to_clipboard(log_window.get("1.0", "end-1c"))
+    if messagebox.askokcancel("Report issues", "Log copied to clipboard.\nDo you want to open browser to report issues?"):
+        try:
+            import webbrowser
+        except ImportError:
+            if messagebox.askyesno("Error", "Webbrowser module not found. Install it?"):
+                subprocess.check_call([python_shell_command, "-m", "pip", "install", "webbrowser"])
+                import webbrowser
+            else:
+                return
+        # Open the URL in the default web browser
+        webbrowser.open(f"https://github.com/Hacaric/Minecraft-2D-Clone/issues/new?title=Automatic Issue Report&body=Log time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nLogs:\n{log_window.get("1.0", "end-1c").replace("\n", "\n- ")}".replace(" ", "%20").replace("\n", "%0A"), new=2)
 
 
 # Create the installer GUI
@@ -281,14 +329,14 @@ def create_installer():
     global root, log_window
     root = Tk()
     root.title("Minecraft 2D Installer")
-    root.geometry("600x400")
+    root.geometry("800x600")
 
     # Add a label
     label = Label(root, text="Welcome to Minecraft 2D Installer!", font=("Arial", 14))
     label.pack(pady=20)
 
     # Add a button to choose the installation directory
-    install_button = Button(root, text="Install Game", command=lambda:install_game(choose_installation_directory()), font=("Arial", 12))
+    install_button = Button(root, text="Install Game", command=lambda:start_install_game(choose_installation_directory()), font=("Arial", 12))
     install_button.pack(pady=10)
 
     install_button = Button(root, text="Run game", command=run_launcher, font=("Arial", 12))
@@ -300,10 +348,12 @@ def create_installer():
 
     log_window = Text(root, wrap="word", yscrollcommand=log_frame.set, height=15, width=70)
     log_window.pack(pady=10)
-    from datetime import datetime
     log_window.insert(INSERT, f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nLog:\n")
     log_frame.config(command=log_window.yview)
     log_window.config(state=DISABLED)
+
+    install_button = Button(root, text="Report issues", command=report_issues, font=("Arial", 12))
+    install_button.pack(pady=10)
 
 
     # Add an exit button

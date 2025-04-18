@@ -20,6 +20,7 @@ import requests
 from zipfile import ZipFile
 import os
 import shutil
+import datetime
 
 from typing import Final as const
 
@@ -27,6 +28,11 @@ launcher_config_file = os.path.join(os.path.dirname( __file__ ), 'launcher_confi
 launcher_data_template = '{"version": 1, "game_versions": {"latest": "./game/"}, "game_version_last_played": 0}'
 launcher_data_file = os.path.join(os.path.dirname( __file__ ), 'launcher_data.json')
 empty_version:const[str] = "0.0.0.0-snapshot"
+logs = ""
+def log(*args, **kwargs):
+    global logs
+    logs += " ".join(map(str, args)) + "\n"
+    print(*args, **kwargs)
 class Version:
     def __init__(self, info:str):
         #info format: {major}.{minor}.{micro}-{type}
@@ -97,7 +103,7 @@ def load_config(config_file_name):
                 pass
         return config
     # except Exception as e:
-    #     print(f"Error loading config file: {e}")
+    #     log(f"Error loading config file: {e}")
     #     return None
 
 def parse_config(config:dict):
@@ -109,8 +115,8 @@ def parse_config(config:dict):
 class GameLauncher:
     def __init__(self, root):
         self.config = load_config(launcher_config_file)
-        print(type(self.config))
-        print(self.config)
+        log(type(self.config))
+        log(self.config)
         os.chdir(os.path.join(os.path.dirname( __file__ )))
         self.root = root
         self.root.title("Minecraft 2D Launcher")
@@ -170,10 +176,13 @@ class GameLauncher:
         launch_button = ttk.Button(version_frame, text="Launch Game", command=self.launch_game)
         launch_button.pack(pady=20)
 
+        launch_button = ttk.Button(self.root, text="Report issues", command=self.report_issues)
+        launch_button.pack(pady=5)
+
         launch_button = ttk.Button(self.root, text="Setting", command=self.settings_window)
         launch_button.pack(pady=20)
 
-        # launch_button = ttk.Button(self.root, text="Website", command=lambda:print("https://github.com/Hacaric/Minecraft-2D-Clone"))
+        # launch_button = ttk.Button(self.root, text="Website", command=lambda:log("https://github.com/Hacaric/Minecraft-2D-Clone"))
         # launch_button.pack(pady=20)
 
         # Status Label
@@ -181,6 +190,27 @@ class GameLauncher:
         self.status_var.set("Status: Ready")
         status_label = ttk.Label(self.root, textvariable=self.status_var, font=("Arial", 10))
         status_label.pack(pady=10)
+    def copy_to_clipboard(self, text):
+        """Copy text to the clipboard."""
+        try:
+            root.clipboard_clear()
+            root.clipboard_append(text)
+            root.update()  # Keep the clipboard updated
+        except Exception as e:
+            pass
+    def report_issues(self):
+        self.copy_to_clipboard(logs)
+        if messagebox.askokcancel("Report issues", "Log copied to clipboard.\nDo you want to open browser to report issues?"):
+            try:
+                import webbrowser
+            except ImportError:
+                if messagebox.askyesno("Error", "Webbrowser module not found. Install it?"):
+                    subprocess.check_call([python_shell_command, "-m", "pip", "install", "webbrowser"])
+                    import webbrowser
+                else:
+                    return
+            # Open the URL in the default web browser
+            webbrowser.open(f"https://github.com/Hacaric/Minecraft-2D-Clone/issues/new?title=Automatic Issue Report&body=Log time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nLogs:\n{logs.replace("\n", "\n- ")}".replace(" ", "%20").replace("\n", "%0A"), new=2)
 
     def save_config(self):
         with open(launcher_config_file, "w") as file:
@@ -239,7 +269,7 @@ class GameLauncher:
             destroy(save=False)
 
     def make_update(self):
-        # print("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))
+        # log("[Debug:143] self.auth_token_display.get('1.0', END):\n", self.auth_token_display.get("1.0", END).replace("\n", "*"), type(self.auth_token_display.get("1.0", END)))
         
         #TK puts \n at end of ScrolledText. That's reason for '[:-1]' down below vvvvvvvvvvvvvvvv
         if self.checkForUpdates(count_comit=True) == False and self.auth_token_display.get("1.0", END)[:-1]!="!force_update":
@@ -256,7 +286,7 @@ class GameLauncher:
             #     folder = filedialog.askdirectory(title="Choose")
             #     if folder:
             #         dir = folder
-            # print(os.listdir(os.path.join(os.path.dirname(__file__), "../.update/")))
+            # log(os.listdir(os.path.join(os.path.dirname(__file__), "../.update/")))
             # return
             self.download_update(os.path.join(os.path.dirname(__file__), "../"))
             messagebox.showinfo("Update info", "Update was downloaded\nRestarting launcher.")
@@ -299,7 +329,7 @@ class GameLauncher:
             else:
                 return False
         else:
-            print(f"\n\n\nError looking for version.txt\nDirectory:{os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")}\n\n\n")
+            log(f"\n\n\nError looking for version.txt\nDirectory:{os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")}\n\n\n")
     def getCurrentVersion(self, gameDir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")):
         if os.path.exists(gameDir):
             if "version.txt" in os.listdir(gameDir):
@@ -307,7 +337,7 @@ class GameLauncher:
                     with open(os.path.join(gameDir, "version.txt"), "r") as file:
                         return file.read()
                 except Exception as e:
-                    print("Error", e)
+                    log("Error", e)
             else:
                 with open(os.path.join(gameDir, "version.txt"), "w") as file:
                     file.write(empty_version)
@@ -322,16 +352,16 @@ class GameLauncher:
             try:
                 return response.content.decode("utf-8")
             except Exception as e:
-                print(f"\nError accessing current version: {e}\n")
+                log(f"\nError accessing current version: {e}\n")
                 return "0.0.0-snapshot"
         else:
-            print('Failed to download file')
+            log('Failed to download file')
             exit(1)
     def download_update(self, directory:str=None):
         self.status_var.set(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
-        print(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
+        log(f"Status: Installing into directory: {directory if (not directory is None) else "idk"}")
         if directory is None:
-            print("Directory is None :line140")
+            log("Directory is None :line140")
             directory = os.path.join(os.path.dirname(__file__), "..")
         update_zip_path = os.path.join(directory, '.update/version.zip')
         extract_path = os.path.join(directory, '.update/update_files/')
@@ -364,29 +394,29 @@ class GameLauncher:
 
         # Download the file
         self.status_var.set("Downloading update from github...")
-        print("Downloading update from github...")
+        log("Downloading update from github...")
         response = requests.get(url)
         if response.status_code == 200:
             try:
                 with open(update_zip_path, 'wb') as file:
                     file.write(response.content)
-                print('File downloaded successfully')
+                log('File downloaded successfully')
             except Exception as e:
-                print(f"\nError: {e}\n")
+                log(f"\nError: {e}\n")
                 return
         else:
-            print('Failed to download file')
+            log('Failed to download file')
             exit(1)
 
         # Unzip the file
         self.status_var.set("Trying to unzip...")
-        print("Trying to unzip...")
+        log("Trying to unzip...")
         try:
             with ZipFile(update_zip_path, 'r') as zObject:
                 zObject.extractall(path=extract_path)
-            print('Files unzipped successfully')
+            log('Files unzipped successfully')
         except Exception as e:
-            print(f'Failed to unzip files: {e}')
+            log(f'Failed to unzip files: {e}')
             exit(1)
 
         #Rename to repository name
@@ -398,16 +428,16 @@ class GameLauncher:
                 shutil.rmtree(new_folder) 
             os.rename(old_folder, new_folder)
         except Exception as e:
-            print(f"Failed renaming directory {extract_path}{old_folder} to {repository_name} error: {e}")
+            log(f"Failed renaming directory {extract_path}{old_folder} to {repository_name} error: {e}")
             exit(1)
         # Delete the zip file
         self.status_var.set("Deleting zip...")
-        print("Deleting zip...")
+        log("Deleting zip...")
         os.remove(update_zip_path)
-        print("\nUpdating files...")
+        log("\nUpdating files...")
         new_files = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
         for filename in new_files:
-            print(f"|---Updating file {filename}")
+            log(f"|---Updating file {filename}")
             os.replace(
                 os.path.join(extract_path, repository_name, extract_only_this_folder_from_zip, filename),
                 os.path.join(old_files_path, filename)
@@ -417,19 +447,19 @@ class GameLauncher:
         for file_name in NOT_DELETE_DIR:
             not_delete = folder_in_directory_tree(os.path.join(old_files_path), file_name)
             if not_delete and os.path.exists(not_delete):
-                print(f"|---Not updating folder (deleting from downloaded files): {not_delete}.")
+                log(f"|---Not updating folder (deleting from downloaded files): {not_delete}.")
                 file_to_delete = folder_in_directory_tree(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip), file_name)
                 if file_to_delete:
                     shutil.rmtree(file_to_delete)
                 else:
-                    print(f"\nError looking for existing file {file_to_delete}\n")
+                    log(f"\nError looking for existing file {file_to_delete}\n")
 
         self.status_var.set("\nUpdating folders...")
-        print("\nUpdating folders...")
+        log("\nUpdating folders...")
         new_folders = [i for i in os.listdir(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip)) if not os.path.isfile(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip,i))]
         for folder_name in new_folders:
             if os.path.exists(os.path.join(old_files_path, folder_name)):
-                print(f"|---Updating folder {os.path.join(old_files_path, folder_name)}")
+                log(f"|---Updating folder {os.path.join(old_files_path, folder_name)}")
                 shutil.rmtree(os.path.join(old_files_path, folder_name))
             try:
                 os.makedirs(os.path.join(old_files_path,folder_name))
@@ -441,9 +471,9 @@ class GameLauncher:
 
             )
 
-        print("\nReplacing completed.")
+        log("\nReplacing completed.")
         self.status_var.set("Cleaning up...")
-        print("Cleaning up...")
+        log("Cleaning up...")
         try: 
             try:
                 shutil.rmtree(extract_path)
@@ -451,10 +481,10 @@ class GameLauncher:
                 pass
             os.makedirs(extract_path)
         except Exception as e:
-            print(f"Failed cleaning, repository probably contained directory. Error: {e}")
+            log(f"Failed cleaning, repository probably contained directory. Error: {e}")
             exit(1)
         self.status_var.set("\nUpdated successfully.")
-        print("\nUpdated successfully.")
+        log("\nUpdated successfully.")
 
 
 

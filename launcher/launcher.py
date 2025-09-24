@@ -66,19 +66,19 @@ class Version:
                     if self.commit > other.commit and count_comit:
                         return True
         return False
-def folder_in_directory_tree(target_dir, folder_name, depth=0):
-    try:
-        if depth >= 7:
-            return False
-        for item in [os.path.join(target_dir, folder) for folder in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, folder))]:
-            if folder_name == os.path.basename(item):
-                return item
-            addr = folder_in_directory_tree(item, folder_name, depth=depth+1)
-            if addr:
-                return addr
-        return False
-    except:
-        return False
+# def folder_in_directory_tree(target_dir, folder_name, depth=0):
+#     try:
+#         if depth >= 7:
+#             return False
+#         for item in [os.path.join(target_dir, folder) for folder in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, folder))]:
+#             if folder_name == os.path.basename(item):
+#                 return item
+#             addr = folder_in_directory_tree(item, folder_name, depth=depth+1)
+#             if addr:
+#                 return addr
+#         return False
+#     except:
+#         return False
 
 def is_directory_in_parents(target_directory, directory_name):
     current_path = os.path.abspath(target_directory)
@@ -95,6 +95,7 @@ def is_directory_in_parents(target_directory, directory_name):
     return False
 def load_config(config_file_name):
     # try:
+    if os.path.isfile(config_file_name):
         with open(config_file_name, "r") as file:
             data = file.read().split("\n")
         config = {}
@@ -105,6 +106,10 @@ def load_config(config_file_name):
             except:
                 pass
         return config
+    else:
+        with open(config_file_name, "w"):
+            data.write("")
+        return load_config(config_file_name)
     # except Exception as e:
     #     log(f"Error loading config file: {e}")
     #     return None
@@ -118,8 +123,8 @@ def parse_config(config:dict):
 class GameLauncher:
     def __init__(self, root):
         self.config = load_config(launcher_config_file)
-        log(type(self.config))
-        log(self.config)
+        # log(type(self.config))
+        # log(self.config)
         os.chdir(os.path.join(os.path.dirname( __file__ )))
         self.root = root
         self.root.title("Minecraft 2D Launcher")
@@ -182,7 +187,7 @@ class GameLauncher:
         launch_button = ttk.Button(self.root, text="Report issues", command=self.report_issues)
         launch_button.pack(pady=5)
 
-        launch_button = ttk.Button(self.root, text="Setting", command=self.settings_window)
+        launch_button = ttk.Button(self.root, text="Settings (Experimental)", command=self.settings_window)
         launch_button.pack(pady=20)
 
         # launch_button = ttk.Button(self.root, text="Website", command=lambda:log("https://github.com/Hacaric/Minecraft-2D-Clone"))
@@ -239,13 +244,13 @@ class GameLauncher:
         settings_frame.pack(padx=20, pady=20)
 
         # Ratio Settings
-        ratio_frame = ttk.LabelFrame(settings_window, text="You will be able to 'set things' here!")
+        ratio_frame = ttk.LabelFrame(settings_window, text="Warning: Experimental feature\nYou will be able to 'set things' here!")
         ratio_frame.pack(padx=20, pady=20)
 
         # Dark/Light Mode
         light_dark_var = tk.IntVar()
         light_dark_var.set(int(self.config["fun"]))
-        light_dark_checkbutton = ttk.Checkbutton(ratio_frame, text="Had fun?", variable=light_dark_var)
+        light_dark_checkbutton = ttk.Checkbutton(ratio_frame, text="Have fun?", variable=light_dark_var)
         light_dark_checkbutton.pack(pady=5)
 
         # FPS Limit
@@ -371,13 +376,19 @@ class GameLauncher:
         extract_only_this_folder_from_zip = "./"
         old_files_path = os.path.join(directory)
 
-        def folder_in_directory_tree(target_dir, folder_name):
-            for item in [os.path.join(target_dir, folder) for folder in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, folder))]:
-                if folder_name == os.path.basename(item):
+        def folder_in_directory_tree(base_dir:str, target_name:str):
+            """
+            Looks for directory with name target_name in all subdirectories of base_dir
+            """
+            for item_name in os.listdir(base_dir):
+                item = os.path.join(base_dir, item_name)
+                if not os.path.isdir(item):
+                    continue
+                if target_name == os.path.basename(item):
                     return item
-                addr = folder_in_directory_tree(item, folder_name)
-                if addr:
-                    return addr
+                found = folder_in_directory_tree(item, target_name)
+                if found:
+                    return found
             return False
 
 
@@ -449,11 +460,13 @@ class GameLauncher:
 
         for file_name in NOT_DELETE_DIR:
             not_delete = folder_in_directory_tree(os.path.join(old_files_path), file_name)
-            if not_delete and os.path.exists(not_delete):
+            if not_delete and os.path.exists(not_delete) and os.path.join(not_delete) != os.path.join("."):
                 log(f"|---Not updating folder (deleting from downloaded files): {not_delete}.")
                 file_to_delete = folder_in_directory_tree(os.path.join(extract_path,repository_name,extract_only_this_folder_from_zip), file_name)
                 if file_to_delete:
                     shutil.rmtree(file_to_delete)
+                elif file_to_delete == False:
+                    pass
                 else:
                     log(f"\nError looking for existing file {file_to_delete}\n")
 

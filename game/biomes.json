@@ -1,0 +1,32 @@
+{
+    "name": "forest",
+    "id": 1,
+    "generation": {
+        "peek": 1,
+        "offset": 0,
+        "size": 1,
+        "multiply": 1,
+        "decoration": {
+            "trees": {
+                "type": "oak",
+                "density": 0.5
+            },
+            "flowers": {
+                "type": "daisy",
+                "density": 0.2
+            }
+        },
+        "structures": [],
+        "features": {
+            "caves": {
+                "density": 0.1,
+                "size": 5
+            },
+            "rivers": {
+                "density": 0.05,
+                "size": 3
+            }
+        },
+        "ores_modifyer": {}
+    }
+}

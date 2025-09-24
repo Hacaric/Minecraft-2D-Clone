@@ -1,0 +1,2 @@
+*.log
+# TODO: Make this functioning with 'git rm -r --cached .'

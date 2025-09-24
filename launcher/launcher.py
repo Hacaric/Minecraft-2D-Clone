@@ -8,6 +8,10 @@
 python_shell_command = "python"
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+REPOSITORY_USER_AND_NAME = "Hacaric/Minecraft-2D-Clone"
+import os
+GAME_MAIN_PATH = os.path.join(os.path.dirname(__file__), "..", "game", "client.py")
+
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, END
@@ -18,7 +22,6 @@ import subprocess
 import time
 import requests
 from zipfile import ZipFile
-import os
 import shutil
 import datetime
 
@@ -210,7 +213,7 @@ class GameLauncher:
                 else:
                     return
             # Open the URL in the default web browser
-            webbrowser.open(f"https://github.com/Hacaric/Minecraft-2D-Clone/issues/new?title=Automatic Issue Report&body=Log time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nLogs:\n{logs.replace("\n", "\n- ")}".replace(" ", "%20").replace("\n", "%0A"), new=2)
+            webbrowser.open(f"https://github.com/{REPOSITORY_USER_AND_NAME}/issues/new?title=Automatic Issue Report&body=Log time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nLogs:\n{logs.replace("\n", "\n- ")}".replace(" ", "%20").replace("\n", "%0A"), new=2)
 
     def save_config(self):
         with open(launcher_config_file, "w") as file:
@@ -312,7 +315,7 @@ class GameLauncher:
             #     self.download_version(version=selected_version)
             self.status_var.set(f"Status: Launching version {selected_version}...")
             os.chdir(os.path.join(os.path.dirname(__file__), "..", self.game_versions[selected_version]))
-            game_status = subprocess.Popen([python_shell_command, "./main.py"])
+            game_status = subprocess.Popen([python_shell_command, GAME_MAIN_PATH])
             self.status_var.set(f"Status: Game is running...")
             while game_status.poll() is None:
                 time.sleep(1)
@@ -346,8 +349,8 @@ class GameLauncher:
             return None
             
     def getLatestCommitVersion(self):
-        url = "https://raw.githubusercontent.com/Hacaric/Minecraft-2D-Clone/refs/heads/main/version.txt"
-        response = requests.get(url)
+        version_file_url = f"https://raw.githubusercontent.com/{REPOSITORY_USER_AND_NAME}/refs/heads/main/version.txt"
+        response = requests.get(version_file_url)
         if response.status_code == 200:
             try:
                 return response.content.decode("utf-8")
@@ -381,8 +384,8 @@ class GameLauncher:
         NOT_DELETE_DIR = ["saves"]
 
         # GitHub repository URL
-        repository_name = 'Minecraft-2D-Clone'
-        addr = f"https://github.com/Hacaric/{repository_name}/archive/refs/heads/main.zip"
+        repository_name = REPOSITORY_USER_AND_NAME.split("/")[1]
+        addr = f"https://github.com/{REPOSITORY_USER_AND_NAME}/archive/refs/heads/main.zip"
         url = addr
 
         # Paths

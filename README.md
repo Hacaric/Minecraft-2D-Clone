@@ -40,24 +40,19 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 <tr><td>Move to left</td><td>A</td></tr>
 <tr><td>Jump</td><td>W</td></tr>
 <tr><td>Pause</td><td>Esc</td></tr>
-<tr><td>Select item from hotbar</td><td>Middle mouse button (scrolling)</td></tr>
-<tr><td>F1</td><td>Toogle UI visibility</td></tr>
-<tr><td>F3</td><td>Toogle Debug mode</td></tr>
-<tr><td>;</td><td>Hard-crash game</td></tr>
 </table>
 
 ## Features:
 - block placement and breaking
-- block sounds
-- choose block from hotbar
-- option for creative or survival mode    *(indev)*
 - create, save and load worlds
-- infinite world generation</br></br>
+- infinite world generation (procedural generation will be improved later)</br></br>
 
 ## Screenshots:
-![image](https://github.com/user-attachments/assets/98c35e0c-15af-4cc6-be3f-4d847f949113)
-![image](https://github.com/user-attachments/assets/994d7dd4-8212-459c-b969-825a757e9359)
-![image](https://github.com/user-attachments/assets/21640544-4af2-4323-9266-2c1084dab639)
+<img width="796" height="600" alt="image" src="https://github.com/user-attachments/assets/1ea45213-40cc-4a97-9fc2-43a1912eff84" />
+<img width="798" height="602" alt="image" src="https://github.com/user-attachments/assets/0d70cfd5-e30b-491c-88a6-93271390350c" />
+<img width="799" height="600" alt="image" src="https://github.com/user-attachments/assets/1d3735bf-0ba3-40ee-b695-7b4d9168e989" />
+<img width="802" height="604" alt="image" src="https://github.com/user-attachments/assets/96fd2f11-770b-4b61-a63e-5fcc3addd6cf" />
+
 
 
 

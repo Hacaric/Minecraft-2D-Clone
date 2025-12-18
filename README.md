@@ -30,7 +30,10 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 
 ## Requirements:
  - Python 3.10 or higher - (match-case is used)
- - Pygame library  - can be installed by ```$pip install pygame```
+ - Pygame library  - can be installed using ```$pip install pygame```
+ - Numpy library - can be installed using ```$pio install numpy```
+ - Tkinter library - usually preinstalled in python
+
 
 ## Controls:
 <table>

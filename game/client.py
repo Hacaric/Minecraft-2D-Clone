@@ -673,7 +673,7 @@ class Game:
     def _check_block_interactions(self, cursor_world_pos, mouse_click, mouse_buttons_states):
         #TODO
         if mouse_buttons_states[0]:
-            log("BLOCK BREAKING")
+            # log("BLOCK BREAKING")
             # Temporary vvv, this will be handled by server: it will summon item entity
             if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"]: # Survival
                 block_id = self.InternalServer.world.getBlock(*cursor_world_pos)
@@ -683,9 +683,9 @@ class Game:
             
             self.InternalServer.world.setBlock(*cursor_world_pos, 0)
         if mouse_buttons_states[2] and self.InternalServer.world.getBlock(*cursor_world_pos) == 0:
-            log("BLOCK SETTING")
+            # log("BLOCK SETTING")
             hitbox = self.InternalServer.main_player.hitbox
-            log(f"Checking for block collisions with block: x:{math.floor(hitbox.x)} - {math.ceil(hitbox.x + hitbox.width)}, hitbox.x:{hitbox.x}, hitbox.width:{hitbox.width}")
+            # log(f"Checking for block collisions with block: x:{math.floor(hitbox.x)} - {math.ceil(hitbox.x + hitbox.width)}, hitbox.x:{hitbox.x}, hitbox.width:{hitbox.width}")
             if not ((math.floor(hitbox.x) <= cursor_world_pos[0]
                      and cursor_world_pos[0] < math.ceil(hitbox.x + hitbox.width) 
                      and math.floor(hitbox.y) <= cursor_world_pos[1] 
@@ -695,9 +695,7 @@ class Game:
                     block_id = item.item_id
                     self.InternalServer.world.setBlock(*cursor_world_pos, block_id)
                     # Temporary vvv, this will be handled by server
-                    log(f"GAMEMODE: {self.InternalServer.main_player.gamemode}, type={type(self.InternalServer.main_player.gamemode)}")
                     if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"]:
-                        log(f"descreasing item amunt")
                         item.amount -= 1
                         if item.amount == 0:
                             self.InternalServer.main_player.inventory.set_slot(self.displayManager.renderer.inGameUI.get_selected_slot(), None)
@@ -741,13 +739,12 @@ class Game:
         self.serverAddr = (LOCALHOST, DEFAULT_PORT)
         if self.flags:
             flag = self.flags[0]
-            log("FLAG", flag)
+            # log("FLAG", flag)
             match flag.type:
                 case "newWorld":
                     log("Initializing internal server...", color="blue")
                     self.InternalServer = InternalServer()
                     log("Creating new world...")
-                    log(f'flag.kwargs["gamemode"]: {flag.kwargs["gamemode"]}')
                     self.InternalServer.new_world(flag.kwargs["name"],flag.kwargs["gamemode"],self.UserName,seed=flag.kwargs["seed"])
                     log("Starting internal server...")
                     self.InternalServer.start()
@@ -914,7 +911,7 @@ def main():
                 gameTextures.block_textures = texture_loader.load_gameTextures.block_textures(block_size)
                 gameTextures.cursor_textures = texture_loader.load_gameTextures.cursor_textures(block_size)
                 gameTextures.player_textures = texture_loader.load_gameTextures.player_textures(block_size)
-                log(f"Player body size: {gameTextures.player_textures["body"].get_size()}")
+                # log(f"Player body size: {gameTextures.player_textures["body"].get_size()}")
                 game.displayManager.renderer.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         
         else:
@@ -923,7 +920,7 @@ def main():
         pygame.display.flip()
         # log("FPS")
         if USE_REDUCES_FPS and not pygame.key.get_focused():
-            log("Reducing FPS")
+            # log("Reducing FPS")
             clock.tick(REDUCED_FPS)
         else:
             clock.tick(FPS)

@@ -102,8 +102,8 @@ class GameUIElement:
 
 class Hotbar(GameUIElement):
     def __init__(self, data, KEYDICT, log, game_obj, gameTextures, Keybinds, mouseInput):
-        SLOT_AMOUNT = 9
-        KEYBINDS = {
+        self.SLOT_AMOUNT = 9
+        self.KEYBINDS = {
             keybinds.Keybinds["hotbar_1"]:0,
             keybinds.Keybinds["hotbar_2"]:1,
             keybinds.Keybinds["hotbar_3"]:2,

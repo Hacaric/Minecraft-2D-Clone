@@ -54,6 +54,7 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 **Note: Multiplayer not functional yet**
 <img width="796" height="602" alt="image" src="https://github.com/user-attachments/assets/b6201fb0-7325-46b3-8fbc-b90432d2c6cf" />
 <img width="802" height="603" alt="image" src="https://github.com/user-attachments/assets/51abe21f-8a68-47b5-a22d-f7e7c3845252" />
+<img width="799" height="600" alt="image" src="https://github.com/user-attachments/assets/25824712-fbe9-4069-98a2-22a797d79541" />
 <img width="797" height="599" alt="image" src="https://github.com/user-attachments/assets/ea31f49a-21a9-4f1f-abf8-2563a25c4c62" />
 
 

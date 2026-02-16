@@ -51,10 +51,11 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 - infinite world generation (procedural generation will be improved later)</br></br>
 
 ## Screenshots:
-<img width="796" height="600" alt="image" src="https://github.com/user-attachments/assets/1ea45213-40cc-4a97-9fc2-43a1912eff84" />
-<img width="798" height="602" alt="image" src="https://github.com/user-attachments/assets/0d70cfd5-e30b-491c-88a6-93271390350c" />
-<img width="799" height="600" alt="image" src="https://github.com/user-attachments/assets/1d3735bf-0ba3-40ee-b695-7b4d9168e989" />
-<img width="802" height="604" alt="image" src="https://github.com/user-attachments/assets/96fd2f11-770b-4b61-a63e-5fcc3addd6cf" />
+**Note: Multiplayer not functional yet**
+<img width="796" height="602" alt="image" src="https://github.com/user-attachments/assets/b6201fb0-7325-46b3-8fbc-b90432d2c6cf" />
+<img width="802" height="603" alt="image" src="https://github.com/user-attachments/assets/51abe21f-8a68-47b5-a22d-f7e7c3845252" />
+<img width="797" height="599" alt="image" src="https://github.com/user-attachments/assets/ea31f49a-21a9-4f1f-abf8-2563a25c4c62" />
+
 
 
 

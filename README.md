@@ -43,6 +43,9 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 <tr><td>Move to left</td><td>A</td></tr>
 <tr><td>Jump</td><td>W</td></tr>
 <tr><td>Pause</td><td>Esc</td></tr>
+<tr><td>Choose slot from hotbar</td><td>1-9</td></tr>
+<tr><td>Inventory</td><td>E</td></tr>
+<tr><td>Manipulating items in inventory</td><td>Mouse buttons (similar to Minecraft)</td></tr>
 </table>
 
 ## Features:

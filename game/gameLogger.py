@@ -97,8 +97,8 @@ def log(*message, color:str|list[str]|None=None, handle_repeat=True, print_only=
             color="fail"
         if message[0][0:5] == "Debug":
             color="#0000ff"
-    elif len(message) > 1 and not False in [isinstance(i, str) for i in message]:
-        message = " ".join(message)
+    # elif len(message) > 1 and not False in [isinstance(i, str) for i in message]:
+    #     message = " ".join(message)
     else:
         message = " ".join([str(i) for i in list(message)])
     global last_date, last_log, last_log_repeated

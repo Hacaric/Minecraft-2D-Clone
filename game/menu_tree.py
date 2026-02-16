@@ -294,7 +294,7 @@ def defaultGameGuiHandler(windowWidth, windowHeight, gui_textures, setflag, curr
                             Button(windowWidth//2+5, windowHeight//2+90, GUI_SMALL_BUTTON_WIDTH, GUI_BUTTON_HEIGHT, button_texture, button_hover_texture, "Create new world"),
                             Button(windowWidth//2-GUI_LARGE_BUTTON_WIDTH//2, windowHeight//2+90, GUI_SMALL_BUTTON_WIDTH, GUI_BUTTON_HEIGHT, button_texture, button_hover_texture, "Back"),
                             TextInput(windowWidth//2-GUI_LARGE_BUTTON_WIDTH//2, windowHeight//2-30, GUI_LARGE_BUTTON_WIDTH, GUI_BUTTON_HEIGHT, button_texture, name="worldNameInput",placeholder="Enter world name", whitelist=FILENAME_LEGAL_CHARS),
-                            SwitchButton(windowWidth//2-GUI_LARGE_BUTTON_WIDTH//2, windowHeight//2+30, GUI_SMALL_BUTTON_WIDTH, GUI_BUTTON_HEIGHT, button_texture, button_hover_texture, ["Survival", "Creative"], 0, name="gamemodeSwitch"),
+                            SwitchButton(windowWidth//2-GUI_LARGE_BUTTON_WIDTH//2, windowHeight//2+30, GUI_SMALL_BUTTON_WIDTH, GUI_BUTTON_HEIGHT, button_texture, button_hover_texture, ["Survival", "Creative"], 0, name="gamemodeSwitch", return_data=[1, 0]),
                             Button(windowWidth//2+5, windowHeight//2+30, GUI_SMALL_BUTTON_WIDTH, GUI_BUTTON_HEIGHT, button_texture, button_hover_texture, "More Options"),
                         ],
                         [

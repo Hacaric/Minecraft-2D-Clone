@@ -70,6 +70,7 @@ class World:
         """
         Retuns rectangular part of world.
         @param(float): x1, y1, x2, y2
+        @return: list[list[int]]
         - bounds of the rectangle
         - if x1 > x2 error is raised
         - if y1 > y2 error is raised
@@ -77,9 +78,9 @@ class World:
         """
 
         if x1 > x2:
-            raise Exception(f"Error getBlocks - x1 > x2 (x1={x1}, x2={x2})")
+            raise ValueError(f"Error getBlocks - x1 > x2 (x1={x1}, x2={x2})")
         if y1 > y2:
-            raise Exception(f"Error getBlocks - y1 > y2 (y1={y1}, x2={y2})")
+            raise ValueError(f"Error getBlocks - y1 > y2 (y1={y1}, x2={y2})")
 
         x1, y1 = math.floor(x1), math.floor(y1)
         x2, y2 = math.ceil(x2), math.ceil(y2)

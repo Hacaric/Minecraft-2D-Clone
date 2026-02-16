@@ -11,6 +11,7 @@ import ast
 import typing
 import tkinter
 import tkinter.filedialog
+import threading
 from gameLogger import log
 
 __script_name__ = os.path.basename(__file__)
@@ -91,7 +92,7 @@ def prompt_file(initial_dir = None) -> str:
 class WorldFile:
     def __init__(self, object:typing.Any|World, path:str, filename_without_extention:str, save_on_init=True, overwrite = False):
         """
-        Requerements:
+        Requirements:
         - 'object' variable should have method object.parse()->dict or you wont be able save your file
         - Every key and value in object.parse()->dict must have __str__ method defined.
         """
@@ -120,6 +121,7 @@ class WorldFile:
                     f.write(f"format:{encoding_mode}\n")
                 with open(self.filepos, "ab") as f:
                     f.write(raw_data)
+                
             case "readable":
                 compressed_data = {}
                 for key, value in world_data.items():
@@ -136,6 +138,88 @@ class WorldFile:
                     f.write(f"format:{encoding_mode}\n")
                 with open(self.filepos, "at") as f:
                     f.write(raw_data)
+
+    def save_quit_safe(self, encoding_mode:Literal["readable","raw"] = "readable"):
+        """
+        Saves world - can be safely interrupted (like stoppping a daemon thread).
+        """
+        log("Saving world in quit-safe mode...", color="#b800ae")
+        try:
+            world_data:dict[typing.Any, typing.Any] = self.world.parse()
+        except Exception as e:
+            log(f"Error calling {self.world}.parse(): {e}")
+            raise e # xd
+        encoding_mode = str(encoding_mode) # For case it does some shananogans with Literal type :D, just to make it work
+        if not (encoding_mode in _config.Constants.WorldFile.save_modes):
+            encoding_mode = _config.Defaults.WorldFile.default_save_mode
+        match encoding_mode:
+            case "raw":
+                json_data:str = json.dumps(world_data)
+                raw_data:bytes = zlib.compress(json_data.encode(_config.Constants.WorldFile.str_encoding))
+                with open(self.filepos + ".temp", "wt") as f:
+                    f.write(f"format:{encoding_mode}\n")
+                with open(self.filepos + ".temp", "ab") as f:
+                    f.write(raw_data)
+                def update_world_file(filepos):
+                    backup_file = filepos + ".backup"
+                    temp_file = filepos + ".temp"
+                    # Ensure temp file exists before proceeding
+                    if not os.path.exists(temp_file):
+                        log(f"Temporary save file {temp_file} not found. Aborting save.", color="fail")
+                        return
+
+                    # Atomically replace the old backup with the current world file
+                    if os.path.exists(filepos):
+                        os.replace(filepos, backup_file)
+                    
+                    # Atomically replace the world file with the new data
+                    os.replace(temp_file, filepos)
+
+                    try:
+                        os.remove(backup_file)
+                    except OSError as e:
+                        log(f"Could not remove backup file {backup_file}: {e}", color="warning")
+
+                save_thread = threading.Thread(target=update_world_file, args=(self.filepos,), daemon=True)
+                save_thread.start()
+            case "readable":
+                compressed_data = {}
+                for key, value in world_data.items():
+                    value = str(value)
+                    if sys.getsizeof(value) >= _config.Constants.WorldFile.readable_mode_min_bytes_for_compression:
+                        value = str(zlib.compress(value.encode(_config.Constants.WorldFile.str_encoding)))
+                        keyname = "E" + key # E as Encoded
+                    else:
+                        keyname = "R" + key # R as Raw
+                    compressed_data[keyname] = value
+                raw_data = json.dumps(compressed_data)#, separators=("\n", "="))
+
+                with open(self.filepos + ".temp", "wt") as f:
+                    f.write(f"format:{encoding_mode}\n")
+                with open(self.filepos + ".temp", "at") as f:
+                    f.write(raw_data)
+                def update_world_file(filepos):
+                    backup_file = filepos + ".backup"
+                    temp_file = filepos + ".temp"
+                    # Ensure temp file exists before proceeding
+                    if not os.path.exists(temp_file):
+                        log(f"Temporary save file {temp_file} not found. Aborting save.", color="fail")
+                        return
+
+                    # Atomically replace the old backup with the current world file
+                    if os.path.exists(filepos):
+                        os.replace(filepos, backup_file)
+                    
+                    # Atomically replace the world file with the new data
+                    os.replace(temp_file, filepos)
+
+                    try:
+                        os.remove(backup_file)
+                    except OSError as e:
+                        log(f"Could not remove backup file {backup_file}: {e}", color="warning")
+
+                save_thread = threading.Thread(target=update_world_file, args=(self.filepos,), daemon=True)
+                save_thread.start()
     @classmethod
     def loadFileDataIntoDict(self, filedata:str) -> dict:
         # log("Checkpoint A.1")

@@ -2,6 +2,8 @@ import pygame
 import random
 import gameExceptions
 import gameLogger
+import _config
+import os
 gameLogger.log("Loading texture addresses...")
 # print("who uses debugger???")
 # Texture and sound data
@@ -43,7 +45,6 @@ item_texture_names = {
 item_names = []
 for item in item_texture_names:
     item_names.append(item)
-player_textures = []
 sound_list = {"stone": "stone", "sand": "sand", "cobblestone": "stone", "bedrock": "stone", "grass": "grass", "dirt": "dirt", "plank": "stone", "glass":"stone", "wood":"stone", "leaves":"dirt", "short_grass":"grass", "flower":"grass"}
 sound_files = {
     "stone": ["stone1.wav", "stone2.wav", "stone3.wav", "stone4.wav", "stone5.wav"],
@@ -124,19 +125,21 @@ class BlockID:
 # Constants
 item_size = 0
 default_void_colour = "#ccd8ff"  # rgba(204,216,255,255)
-texture_folder = "assets/textures/blocks/"
-sound_folder = "assets/sounds/blocks/"
-music_folder = "assets/music/"
-cursor_folder = "assets/textures/cursor/"
-gui_folder = "assets/textures/GUI/"
-player_folder = "assets/textures/player/"
-health_bar_folder = "assets/textures/GUI/bars/Health"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+texture_folder = os.path.join(current_dir, "assets/textures/blocks/")
+sound_folder = os.path.join(current_dir, "assets/sounds/blocks/")
+music_folder = os.path.join(current_dir, "assets/music/")
+cursor_folder = os.path.join(current_dir, "assets/textures/cursor/")
+gui_folder = os.path.join(current_dir, "assets/textures/GUI/")
+player_folder = os.path.join(current_dir, "assets/textures/player/")
+health_bar_folder = os.path.join(current_dir, "assets/textures/GUI/bars/Health")
 player_textures = {}
 
 #--------TEXTURE LOADING-----------
 def load_gui_textures():
     try:
         for key, file_path in gui_files.items():
+            print(f"Loding {gui_folder + file_path}...")
             gui_textures[key] = pygame.image.load(gui_folder + file_path).convert_alpha()
         gui_textures["empty"] = pygame.Surface((1, 1), pygame.SRCALPHA) # A 1x1 transparent surface
 
@@ -146,23 +149,23 @@ def load_gui_textures():
         print("\nError loading GUI textures:\n", e)
         exit()
 
-def load_cursor_textures(block_size, block_size_add):
+def load_cursor_textures(block_size, block_size_correction_px=1):
     try:
-        cursor = [pygame.transform.scale(pygame.image.load(cursor_folder + "cursor.png"), (block_size+block_size_add, block_size+block_size_add))]
+        cursor = [pygame.transform.scale(pygame.image.load(cursor_folder + "cursor.png").convert_alpha(), (block_size+block_size_correction_px, block_size+block_size_correction_px))]
         for i in range(1, 11):
-            cursor.append(pygame.transform.scale(pygame.image.load(f"{cursor_folder}cursor{i}.png"), (block_size+block_size_add, block_size+block_size_add)))
+            cursor.append(pygame.transform.scale(pygame.image.load(f"{cursor_folder}cursor{i}.png").convert_alpha(), (block_size+block_size_correction_px, block_size+block_size_correction_px)))
         print(f"Loaded {len(cursor)} cursor textures.")
         return cursor
     except Exception as e:
         print("\nError loading cursor textures:\n", e)
         exit()
 
-def load_block_textures(block_size, block_size_add):
+def load_block_textures(block_size, block_size_correction_px:int = 1):
     try:
         textures = []
         for i in block_texture_files:
             for j in range(len(block_texture_files[i])):
-                textures.append(pygame.transform.scale(pygame.image.load(texture_folder + block_texture_files[i][j]), (block_size+block_size_add, block_size+block_size_add)))
+                textures.append(pygame.transform.scale(pygame.image.load(texture_folder + block_texture_files[i][j]).convert_alpha(), (block_size+block_size_correction_px, block_size+block_size_correction_px)))
         print(f"Loaded block textures.")
         return textures
     except Exception as e:
@@ -181,16 +184,27 @@ def load_item_textures(item_size):
         print("\nError loading item textures:\n", e)
         exit()
 
-def load_player_textures(player_textures_files = player_textures_files):
+default_block_size = _config.Defaults.Screen.block_size
+def load_player_textures(block_size, player_textures_files = player_textures_files):
+    """
+    Loads player textures. 
+    """
+    scale_factor = block_size / default_block_size
+    gameLogger.log(f"Loading player textures with scale {block_size} / {default_block_size} = {scale_factor}")
+    player_textures:dict[str, pygame.Surface] = {}
     for key in player_textures_files.keys():
         player_textures[key] = pygame.image.load(player_folder + player_textures_files[key]).convert_alpha()
     player_textures["leg_l"] = pygame.transform.flip(player_textures["leg_r"], True, False)
+    for key, value in player_textures.items():
+        if key == "body":
+            gameLogger.log(f"Player body original size: {value.get_size()[0]}")
+        try:
+            default_texture_size = _config.Defaults.PlayerRender.size_dict[key]
+            # Maybe remove scale_factor - not tested, may cause problems with custom block sizes
+            player_textures[key] = pygame.transform.scale(value, (block_size*default_texture_size[0]*scale_factor, scale_factor*block_size*default_texture_size[1]))
+        except Exception as e:
+            gameLogger.log(f"Error: couldn't load player texture {key}: {e}. Maybe entry in _config.Defaults.PlayerRender missing?")
     return player_textures
-    try:
-        pass
-    except Exception as e:
-        print("\nError loading player textures:\n", e)
-        exit()
 
 def load_health_bar_textures():
     try:
@@ -216,20 +230,33 @@ def load_sound_effects():
         print("\nError loading sound effects:\n", e)
         exit()
 
-def load_all(block_size, block_size_add):
+class GameTextures:
+    def __init__(self, cursor_textures, block_textures, sounds, item_textures, player_textures, gui_textures, health_bar_textures):
+        self.cursor_textures = cursor_textures
+        self.block_textures = block_textures
+        self.sounds = sounds
+        self.item_textures = item_textures
+        self.player_textures = player_textures
+        self.gui_textures = gui_textures
+        self.health_bar_textures = health_bar_textures
+    
+    # def all_convert_alpha(self):
+        
+
+def load_all(block_size, block_size_correction_px = 1):
     gameLogger.log("Loading textures...")
     global item_size
     item_size = block_size/8*7
     
     gui_t = load_gui_textures()
-    cursor_t = load_cursor_textures(block_size, block_size_add)
-    block_t = load_block_textures(block_size, block_size_add)
+    cursor_t = load_cursor_textures(block_size, block_size_correction_px)
+    block_t = load_block_textures(block_size, block_size_correction_px)
     item_t = load_item_textures(item_size)
-    player_t = load_player_textures()
+    player_t = load_player_textures(block_size)
     sounds = load_sound_effects()
     health_bar_t = load_health_bar_textures()
     gameLogger.log("Textures loaded.")
-    return [cursor_t, block_t, sounds, item_t, player_t, gui_t, health_bar_t]
+    return GameTextures(cursor_t, block_t, sounds, item_t, player_t, gui_t, health_bar_t)
 
 def random_sound(name, block_sound):
     try:

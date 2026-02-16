@@ -2,10 +2,8 @@
     "name": "forest",
     "id": 1,
     "generation": {
-        "peek": 1,
-        "offset": 0,
-        "size": 1,
-        "multiply": 1,
+        "chunk_noise_dencity":0.5,
+        "terrain_height_diversity":16,
         "decoration": {
             "trees": {
                 "type": "oak",

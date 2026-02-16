@@ -77,7 +77,7 @@ class Player(Entity):
             hitbox = Hitbox(0, 0, 0.4, 1.8)
         super().__init__(hitbox, name, texture)
         # Add Player-specific attributes to the list of savable attributes
-        self.gamemode = gamemode
+        self.gamemode = int(gamemode)
         self._savable_attributes.extend([["role", str], ["maxHealth", int], ["health", int]])
         self.role = role
         self.maxHealth = maxHealth
@@ -86,7 +86,8 @@ class Player(Entity):
         self.velocityY = 0
         self.alive = True
         self.inventory = Inventory()
-        if gamemode == Constants.gamemode_enum["creative"]:
+        print(f'Creating player instance with gamemode: {gamemode}, Constants.gamemode_enum["creative"] = {Constants.gamemode_enum["creative"]}')
+        if int(gamemode) == Constants.gamemode_enum["creative"]:
             self.inventory.load_preset(0)
         if currentHealth:
             self.health = currentHealth

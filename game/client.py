@@ -469,7 +469,7 @@ class InternalServer:
                 seed = hash(seed)
             except TypeError:
                 log("Unhashable type:", type(seed), "given as seed.")
-                seeed = hash(id(seed))
+                seed = hash(id(seed))
         else:
             seed = random.randint(*Constants.random_seed_range)
         self.seed = seed
@@ -747,6 +747,7 @@ class Game:
                     log("Initializing internal server...", color="blue")
                     self.InternalServer = InternalServer()
                     log("Creating new world...")
+                    log(f'flag.kwargs["gamemode"]: {flag.kwargs["gamemode"]}')
                     self.InternalServer.new_world(flag.kwargs["name"],flag.kwargs["gamemode"],self.UserName,seed=flag.kwargs["seed"])
                     log("Starting internal server...")
                     self.InternalServer.start()

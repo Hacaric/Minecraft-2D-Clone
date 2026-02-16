@@ -12,6 +12,7 @@ import _config
 from _config import fullPath
 from item import Item
 import math
+import keybinds
 
 # try:
 #     log()
@@ -100,19 +101,19 @@ class GameUIElement:
         screen.blit(self.texture, self.texture_pos)
 
 class Hotbar(GameUIElement):
-    SLOT_AMOUNT = 9
-    KEYBINDS = {
-        pygame.K_1:0,
-        pygame.K_2:1,
-        pygame.K_3:2,
-        pygame.K_4:3,
-        pygame.K_5:4,
-        pygame.K_6:5,
-        pygame.K_7:6,
-        pygame.K_8:7,
-        pygame.K_9:8,
-    }
     def __init__(self, data, KEYDICT, log, game_obj, gameTextures, Keybinds, mouseInput):
+        SLOT_AMOUNT = 9
+        KEYBINDS = {
+            keybinds.Keybinds["hotbar_1"]:0,
+            keybinds.Keybinds["hotbar_2"]:1,
+            keybinds.Keybinds["hotbar_3"]:2,
+            keybinds.Keybinds["hotbar_4"]:3,
+            keybinds.Keybinds["hotbar_5"]:4,
+            keybinds.Keybinds["hotbar_6"]:5,
+            keybinds.Keybinds["hotbar_7"]:6,
+            keybinds.Keybinds["hotbar_8"]:7,
+            keybinds.Keybinds["hotbar_9"]:8,
+        }
         super().__init__(data, KEYDICT, log, game_obj, gameTextures, Keybinds, mouseInput)
         try:
             self.current_selected_slot = data["current_selected_slot"]

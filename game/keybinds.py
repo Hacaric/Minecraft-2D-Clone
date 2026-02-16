@@ -17,7 +17,6 @@ Keybinds = {
     "hotbar_7": pygame.K_7,
     "hotbar_8": pygame.K_8,
     "hotbar_9": pygame.K_9,
-    "hotbar_0": pygame.K_0,
     "hotbar_scroll_up": pygame.K_PAGEUP,
     "hotbar_scroll_down": pygame.K_PAGEDOWN,
     "force_quit":pygame.K_SEMICOLON

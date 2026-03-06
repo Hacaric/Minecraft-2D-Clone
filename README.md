@@ -1,9 +1,9 @@
-# Minecraft Clone 2D
+# Infinity Craft
 
 ### This is NOT an official project by Mojang Studios
 </br>
 
-**Minecraft 2D is a Python recreation of the Scratch project Paper Minecraft by Griffpatch.
+**Infinity Craft is a Python recreation of the Scratch project Paper Minecraft by Griffpatch.
 It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and inventory are still in development.**</br></br>
 If you are reading this please share :D - I'm glad if anybody reads this.</br>
 

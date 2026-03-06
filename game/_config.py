@@ -25,7 +25,7 @@ class Constants:
         max_stack_size = 64
 
     class World:
-        GenChecksPerSec = 1 # Tries to generate new chunks (if needed) some number of times per seconds
+        # GenChecksPerSec = 1 # Tries to generate new chunks (if needed) some number of times per seconds
         MaxGenerationThreads = 5
         MaxBlockIndex = 65534 # Bigger values will mess up world files (especially when block are stored as chr(block_index))
 
@@ -61,6 +61,7 @@ class Defaults:
         size_dict["body"] = (0.8, 1.8)
         size_dict["leg_r"] = (0.4, 1.0)
         size_dict["leg_l"] = (0.4, 1.0)
+        size_dict["hand1"] = (1.0, 0.4)
         size_dict["head_r"] = (0.5, 0.5)
         size_dict["head_l"] = (0.5, 0.5)
 

@@ -1,3 +1,4 @@
+import block
 class MenuClosed(Exception):
     pass
 class FailedConnectingServer(Exception):
@@ -28,6 +29,8 @@ class InvalidPosition(Exception):
         else:
             self.y = None
         self.args = args[2:]
+
+INVALID_BLOCK = block.Block(-1)
 INVALID_BLOCKS_POSITION = -10
 WAITING_FOR_RESPONSE = -11
 NOT_FOUND = -404

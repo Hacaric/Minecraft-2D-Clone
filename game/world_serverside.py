@@ -12,6 +12,7 @@ from _config import Constants
 import queue
 import threading
 import json
+import time
 
 
 class World:
@@ -32,6 +33,9 @@ class World:
         self.chunk_gen_threads_results:dict[int, any] = {}
         self.chunk_gen_threads_lock:threading.Lock = threading.Lock()
         self.chunk_gen_threads_results_lock_owner:int = None
+        self.blocks_getting_broken = {}
+        self.current_tick = 0
+        self.block_breaking_delay_ticks = 50
 
         self._savable_simple_attributes = [["chunk_size_x", int], ["chunk_size_y", int], ["spawn_chunk", int]]
 
@@ -98,7 +102,7 @@ class World:
         # print(len(blocks), blocks)
         for row in blocks:
             for block in row:
-                if not not_full_blocks[block]:
+                if not not_full_blocks[block.id]:
                     return True
         return False
     def on_ground(self, hitbox:Hitbox):
@@ -109,11 +113,79 @@ class World:
         else:
             self.chunks[x] = self.generator.generateChunk(x)
 
-    def setBlock(self, x, y, block_type):
+    def setBlock(self, x, y, block):
         chunkX = x // self.chunk_size_x
         x = x % self.chunk_size_x
 
-        self.chunks[chunkX].setBlock(x, y, block_type)
+        if isinstance(block, int):
+            block = Block(block)
+        log(f"Setting block {x}, {y} to {block} of id {block.id}")
+        self.chunks[chunkX].setBlock(x, y, block)
+    def changeBreakingProgress(self, x, y, progress_change):
+        self.blocks_getting_broken[(x,y)] = self.current_tick
+        try:
+            chunkX = x // self.chunk_size_x
+            chunk_relative_x = x % self.chunk_size_x
+            # log(f"Affecting block on {x} {y}")
+            chunk = self.getChunkByIndex(chunkX)
+            block = chunk.getBlock(chunk_relative_x, y)
+            if isinstance(block, int):
+                log(f"WARNING: Some blocks are stored as integers instead of Block instance: x:{x}, y:{y}, value:{block}")
+                block = Block(block)
+            current_breaking_progress = block.breaking_progress
+            block_hardness = 5
+            if current_breaking_progress + progress_change >= block_hardness:
+                chunk.setBlock(chunk_relative_x, y, 0)
+                del self.blocks_getting_broken[(x,y)]
+                return block
+            else:
+                chunk.getBlock(chunk_relative_x, y).breaking_progress += progress_change
+                return None
+        except Exception as e:
+            print(f"Error changing breaking progress: {e}")
+            return gameExceptions.INVALID_BLOCK
+        
+    def setBreakingProgress(self, x, y, progress_value):
+        self.blocks_getting_broken[(x,y)] = self.current_tick
+        try:
+            chunkX = x // self.chunk_size_x
+            chunk_relative_x = x % self.chunk_size_x
+            # log(f"Affecting block on {x} {y}")
+            chunk = self.getChunkByIndex(chunkX)
+            block = chunk.getBlock(chunk_relative_x, y)
+            if isinstance(block, int):
+                log(f"WARNING: Some blocks are stored as integers instead of Block instance: x:{x}, y:{y}, value:{block}")
+                block = Block(block)
+            block_hardness = 5
+            if progress_value >= block_hardness:
+                chunk.setBlock(chunk_relative_x, y, 0)
+                del self.blocks_getting_broken[(x,y)]
+                return block
+            else:
+                chunk.getBlock(chunk_relative_x, y).breaking_progress = progress_value
+                return None
+        except Exception as e:
+            print(f"Error setting breaking progress: {e}")
+            return gameExceptions.INVALID_BLOCK
+        # try:
+        #     chunkX = x // self.chunk_size_x
+        #     x = x % self.chunk_size_x
+        #     chunk = self.getChunkByIndex(chunkX)
+        #     block = chunk.getBlock(x, y)
+        #     if isinstance(block, int):
+        #         log(f"WARNING: Some blocks are stored as integers instead of Block instance: x:{x}, y:{y}, value:{block}")
+        #         block = Block(block)
+        #     block_hardness = 5
+        #     if progress_value >= block_hardness:
+        #         self.setBlock(x, y, 0)
+        #         return block
+        #     else:
+        #         chunk.getBlock(x, y).breaking_progress = progress_value
+        #         return None
+        # except Exception as e:
+        #     print(f"Error setting breking progress: {e}")
+        #     return gameExceptions.BLOCK_NOT_FOUND
+
 
     def getParsedChunk(self, x) -> tuple[list[int], list[Entity]]:
         """
@@ -127,7 +199,7 @@ class World:
         for x in range(self.chunk_size_x):
             collumn = self.chunks[self.spawn_chunk].blocks[x]
             for y in range(self.chunk_size_y-1,-1,-1):
-                if not not_full_blocks[collumn[y]]:
+                if not not_full_blocks[collumn[y].id]:
                     y += 1
                     return x, y
         return 0, self.chunk_size_y
@@ -146,7 +218,7 @@ class World:
         return
 
     def tick(self):
-
+        self.current_tick += 1
         with self.chunk_gen_threads_lock:
             for player in self.players:
                 chunkX = player.hitbox.x // self.chunk_size_x
@@ -167,6 +239,10 @@ class World:
                 self.chunks[key] = self.chunk_gen_threads_results[key]
                 del self.chunk_gen_threads_results[key]
                 del self.chunk_gen_threads[key]
+            
+            for key in self.blocks_getting_broken:
+                if self.current_tick - self.blocks_getting_broken[key] > self.block_breaking_delay_ticks:
+                    self.setBreakingProgress(key[0], key[1], 0)
 
     def parse(self) -> dict:
         data = {}

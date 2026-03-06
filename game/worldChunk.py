@@ -1,6 +1,7 @@
 import gameExceptions
 from gameLogger import log
 from entity import Entity
+from block import Block
 import json
 
 class XY:
@@ -9,7 +10,7 @@ class XY:
         self.y = y
 class Chunk:
     def __init__(self, sizeX, sizeY, blocks:list[list[int]], biome:int = 0):
-        self.blocks:list[list[int]] = blocks
+        self.blocks:list[list[int]] = [[Block(j) for j in i] for i in blocks]
         self.biome:int = biome
         self.width = sizeX
         self.height = sizeY
@@ -34,9 +35,11 @@ class Chunk:
         if x < self.width and x >= 0 and y < self.height and y >= 0:
             return self.blocks[x][y]
         return -1
-    def setBlock(self, x:int, y:int, block_type):
+    def setBlock(self, x:int, y:int, block:Block):
+        if isinstance(block, int):
+            block = Block(block)
         if x < self.width and x >= 0 and y < self.height and y >= 0:
-            self.blocks[x][y] = block_type
+            self.blocks[x][y] = block
         else:
             raise Exception(f"Out of range (Chunk.setBlock) xy: {x}, {y}")
     # def loadData(self, data:list[list[int]], biome:int=None):
@@ -105,7 +108,7 @@ class Chunk:
         block_map = []
         for x in range(self.width):
             for y in range(self.height):
-                block_map.append(self.blocks[x][y])
+                block_map.append(self.blocks[x][y].id)
         return block_map
     def parse(self) -> str:
         data = {}
@@ -132,7 +135,7 @@ class Chunk:
         for x in range(self.width):
             self.blocks.append([])
             for y in range(self.height):
-                self.blocks[x].append(self.blocks_raw[x*self.height + y])
+                self.blocks[x].append(Block(self.blocks_raw[x*self.height + y]))
 
 class ChunkLoadFromStr(Chunk):
     """

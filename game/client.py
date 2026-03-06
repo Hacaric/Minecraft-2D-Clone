@@ -23,7 +23,7 @@ from keys import keydict
 import world_files as world_files
 from GameUI import *
 from keybinds import Keybinds
-
+from block import Block
 
 WINDOW_WIDTH, WINDOW_HEIGHT = Defaults.Screen.width, Defaults.Screen.height
 FPS = Defaults.Screen.FPS
@@ -268,7 +268,9 @@ class Renderer:
         self.lastFrameTime = None
         self.framesRenderedInThisSecond = 0
         self.FPS = -1
+        self.last_player_X = 0
         self.player_movement_leg_angle = 0
+        self.player_hand_angle = 0
         self.mouse_in_world_position = (0,0)
         log("Initalizing Renderer instance...")
         if self.temp_framePrototype is None:
@@ -297,7 +299,7 @@ class Renderer:
     #     :param is_game_paused_: If game is paused
     #     :param rotate_player: If player head should be rotated
     #     """
-        player = self.game.InternalServer.main_player.hitbox
+        player_hitbox = self.game.InternalServer.main_player.hitbox
         camera = self.camera
 
         class Point2d:
@@ -321,10 +323,10 @@ class Renderer:
 
         # Calculate player angle
         if not (self.game.lock_movement):
-            player.angle = math.atan2(mouse_offset_y, mouse_offset_x)
+            player_hitbox.angle = math.atan2(mouse_offset_y, mouse_offset_x)
 
         # Determine which direction the head should face
-        if -math.pi/2 < player.angle < math.pi/2:
+        if -math.pi/2 < player_hitbox.angle < math.pi/2:
             head_texture_name = "head_r"
         else:
             head_texture_name = "head_l"
@@ -334,35 +336,79 @@ class Renderer:
 
         # Calculate the offset for the head texture
         original_texture = pygame.transform.scale(head_texture, (block_size*0.5, block_size*0.5))
-        if -math.pi/2 < player.angle < math.pi/2:
-            offset = pygame.math.Vector2(0, -original_texture.get_height() / 2).rotate(-math.degrees(player.angle))
+        if -math.pi/2 < player_hitbox.angle < math.pi/2:
+            offset = pygame.math.Vector2(0, -original_texture.get_height() / 2).rotate(-math.degrees(player_hitbox.angle))
         else:
-            offset = pygame.math.Vector2(0, original_texture.get_height() / 2).rotate(-math.degrees(player.angle))
-
-        # Render the head texture
-        head_texture = pygame.transform.rotate(original_texture, math.degrees(player.angle))
-        head_rect = head_texture.get_rect(center=(get_screen_pos(camera, Point2d(player.x - 0.16, player.y))[0] + offset.x, get_screen_pos(camera, Point2d(player.x, player.y + 0.6))[1] + offset.y))
-        self.temp_framePrototype.blit(head_texture, head_rect)
+            offset = pygame.math.Vector2(0, original_texture.get_height() / 2).rotate(-math.degrees(player_hitbox.angle))
 
         # Render the body texture
         body_texture = pygame.transform.scale(gameTextures.player_textures["body"], (block_size*0.3, block_size))
-        body_rect = body_texture.get_rect(center=(get_screen_pos(camera, Point2d(player.x - 0.3/2, player.y))[0], get_screen_pos(camera, Point2d(player.x, player.y + 0.1))[1]))
+        body_rect = body_texture.get_rect(center=(get_screen_pos(camera, Point2d(player_hitbox.x - 0.3/2, player_hitbox.y + 0.2))[0], get_screen_pos(camera, Point2d(player_hitbox.x, player_hitbox.y + 0.3))[1]))
         self.temp_framePrototype.blit(body_texture, body_rect)
 
+        # Render the head texture
+        head_texture = pygame.transform.rotate(original_texture, math.degrees(player_hitbox.angle))
+        head_rect = head_texture.get_rect(center=(get_screen_pos(camera, Point2d(player_hitbox.x - 0.16, player_hitbox.y))[0] + offset.x, get_screen_pos(camera, Point2d(player_hitbox.x, player_hitbox.y + 0.8))[1] + offset.y))
+        self.temp_framePrototype.blit(head_texture, head_rect)
+
         # Render the leg textures
-        leg_texture = gameTextures.player_textures["leg_r"] if -math.pi/2 < player.angle < math.pi/2 else gameTextures.player_textures["leg_l"]
-        body_texture = pygame.transform.scale(leg_texture, (block_size * 0.29, block_size * 0.8))
-        rotated_texture = pygame.transform.rotate(body_texture, self.player_movement_leg_angle)
-        rotation_point = get_screen_pos(camera, Point2d(player.x - 0.3 / 2, player.y - 0.7))
+        leg_texture = gameTextures.player_textures["leg_l"] if -math.pi/2 < player_hitbox.angle < math.pi/2 else gameTextures.player_textures["leg_r"]
+        leg_texture = pygame.transform.scale(leg_texture, (block_size * 0.29, block_size * 0.8))
+        rotated_texture = pygame.transform.rotate(leg_texture, self.player_movement_leg_angle)
+        rotation_point = get_screen_pos(camera, Point2d(player_hitbox.x - 0.15, player_hitbox.y - 0.5))
         rotated_rect = rotated_texture.get_rect(center=(rotation_point[0] + (math.sin(math.radians(self.player_movement_leg_angle/2 + 90))*2*math.sin(math.radians(self.player_movement_leg_angle/2))*block_size*0.29) + int(self.player_movement_leg_angle<0), rotation_point[1]))
         self.temp_framePrototype.blit(rotated_texture, rotated_rect)
-        rotated_texture = pygame.transform.rotate(body_texture, -self.player_movement_leg_angle)
+        rotated_texture = pygame.transform.rotate(leg_texture, -self.player_movement_leg_angle)
         rotated_rect = rotated_texture.get_rect(center=(rotation_point[0] + (math.sin(math.radians(-self.player_movement_leg_angle/2 + 90))*2*math.sin(math.radians(-self.player_movement_leg_angle/2))*block_size*0.29) + int(self.player_movement_leg_angle<0), rotation_point[1]))
         self.temp_framePrototype.blit(rotated_texture, rotated_rect)
 
-        if self.player_movement_leg_angle > math.radians(90*2 + 45):
-            self.player_movement_leg_angle -= math.radians(90)
-        self.player_movement_leg_angle += 0.4
+        # Render the hand texture
+        hand_texture = gameTextures.player_textures["hand1"]
+        hand_texture = pygame.transform.scale(hand_texture, (block_size * 0.8, block_size * 0.29))
+        pivot_point = pygame.math.Vector2(get_screen_pos(camera, Point2d(player_hitbox.x - 0.15, player_hitbox.y + 0.7))[:2])
+        offset = pygame.math.Vector2(block_size * 0.4, 0) 
+        if self.player_hand_angle > 90: # When going backwads
+            angle = 180 - self.player_hand_angle
+        else:
+            angle = self.player_hand_angle
+        looking_right = -math.pi/2 < player_hitbox.angle < math.pi/2
+        angle = (angle * (1 if looking_right else -1))
+        angle -= 90 # Normalize - the hand's texture is oriented differently for some reason
+        rotated_texture = pygame.transform.rotate(hand_texture, angle)
+        rotated_offset = offset.rotate(-angle)
+        rect = rotated_texture.get_rect(center = pivot_point + rotated_offset)
+        self.temp_framePrototype.blit(rotated_texture, rect)
+        
+
+        arm_rotation_speed = 8
+        min_rotation = 25
+        if self.mouseInput.button_states[0]:
+            self.player_hand_angle += arm_rotation_speed
+        else:
+            if abs(self.player_hand_angle) < arm_rotation_speed:
+                self.player_hand_angle = 0
+            elif self.player_hand_angle > 0:
+                self.player_hand_angle -= arm_rotation_speed
+            else:
+                self.player_hand_angle += arm_rotation_speed
+        if self.player_hand_angle > (90 - min_rotation)*2:
+            self.player_hand_angle = min_rotation
+
+        if self.last_player_X != player_hitbox.x:
+            self.player_movement_leg_angle += 7
+        else:
+            # Legs should be straigth when not moving
+            if abs(self.player_movement_leg_angle) < 7:
+                self.player_movement_leg_angle = 0
+            elif self.player_movement_leg_angle > 0:
+                self.player_movement_leg_angle -= 7
+            else:
+                self.player_movement_leg_angle += 7
+
+            # self.player_movement_leg_angle = self.player_movement_leg_angle // 2
+        self.last_player_X = player_hitbox.x
+        if self.player_movement_leg_angle > 35:
+            self.player_movement_leg_angle = -35
 
     def newFrame(self):
         if not self.original_size == (WINDOW_WIDTH, WINDOW_HEIGHT):
@@ -394,8 +440,20 @@ class Renderer:
             for x in range(len(blockmap[0])):
                 screen_x = (x-screen_offset[0])*block_size
                 screen_y = (y+screen_offset[1]-1)*block_size
-                block_texture = gameTextures.block_textures[blockmap[-y-1][x]]
+                block = blockmap[-y-1][x]
+                block_texture = gameTextures.block_textures[block.id]
                 self.temp_framePrototype.blit(block_texture, (screen_x, screen_y))
+                if block.breaking_progress:
+                    log("rendering breaking progress")
+                    hardness = 5 # 5 is currently hardness of all blocks, TODO
+                    percentage = math.floor(block.breaking_progress / hardness * 10)
+                    breaking_texture = gameTextures.cursor_textures[percentage]
+                    if isinstance(breaking_texture, pygame.Surface):
+                        self.temp_framePrototype.blit(breaking_texture, (screen_x, screen_y))
+                    else:
+                        log("Error, breaking texture is not Surface, it's:", type(breaking_texture))
+
+
 
        # log(gameTextures.player_textures["body"].get_size()[0], gameTextures.player_textures["body"].get_size()[1], color="#ff0000")
         # log(self.temp_framePrototype.get_size()[0]//2 - gameTextures.block_textures[5].get_size()[0]//2, self.temp_framePrototype.get_size()[1]//2 - gameTextures.block_textures[5].get_size()[1]//2, color="#ff00d4")
@@ -640,6 +698,7 @@ class Game:
         self.world_file = None
         self.UserName = "Herobrine"
         self.lock_movement = False # When inventory is opened
+        self.block_breaking_delay = 0
     def setFlag(self, *args, **kwargs):
         """
         Create flag for game system.
@@ -671,18 +730,26 @@ class Game:
         )
         return movement_request
     def _check_block_interactions(self, cursor_world_pos, mouse_click, mouse_buttons_states):
-        #TODO
+        
         if mouse_buttons_states[0]:
             # log("BLOCK BREAKING")
             # Temporary vvv, this will be handled by server: it will summon item entity
-            if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"]: # Survival
-                block_id = self.InternalServer.world.getBlock(*cursor_world_pos)
+            time_ = time.time()
+            if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"] and time_ >= self.block_breaking_delay: # Survival
+                self.block_breaking_delay = time_ + 0.2
+                block_id = self.InternalServer.world.getBlock(*cursor_world_pos).id
                 if texture_loader.block_names[block_id] != "air":
-                    self.InternalServer.main_player.inventory.pickup_item(Item(block_id))
+                    broken_block = self.InternalServer.world.changeBreakingProgress(*cursor_world_pos, 1)
+                    if broken_block and broken_block.id > 0:
+                        self.InternalServer.main_player.inventory.pickup_item(Item(broken_block.id))
+
+            elif self.InternalServer.main_player.gamemode == Constants.gamemode_enum["creative"]:
+                block_id = self.InternalServer.world.getBlock(*cursor_world_pos).id
+                if texture_loader.block_names[block_id] != "air":
+                    broken_block = self.InternalServer.world.setBreakingProgress(*cursor_world_pos, 9999)
             # ^^^
             
-            self.InternalServer.world.setBlock(*cursor_world_pos, 0)
-        if mouse_buttons_states[2] and self.InternalServer.world.getBlock(*cursor_world_pos) == 0:
+        if mouse_buttons_states[2] and self.InternalServer.world.getBlock(*cursor_world_pos).id == 0:
             # log("BLOCK SETTING")
             hitbox = self.InternalServer.main_player.hitbox
             # log(f"Checking for block collisions with block: x:{math.floor(hitbox.x)} - {math.ceil(hitbox.x + hitbox.width)}, hitbox.x:{hitbox.x}, hitbox.width:{hitbox.width}")
@@ -693,7 +760,8 @@ class Game:
                 item = self.InternalServer.main_player.inventory.get_slot(self.displayManager.renderer.inGameUI.get_selected_slot())
                 if item:
                     block_id = item.item_id
-                    self.InternalServer.world.setBlock(*cursor_world_pos, block_id)
+                    block = Block(block_id)
+                    self.InternalServer.world.setBlock(*cursor_world_pos, block)
                     # Temporary vvv, this will be handled by server
                     if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"]:
                         item.amount -= 1
@@ -714,8 +782,8 @@ class Game:
                     player_movement_request = self._create_move_player_request(mouse_click, events, mouse_pos, self.lock_movement)
                     self.InternalServer.main_player.move(player_movement_request)
                     self.displayManager.renderer.inGameUI.update(events)
-                    if tick % (self.TPS * Constants.World.GenChecksPerSec) == 0:
-                        self.InternalServer.world.tick()
+                    # if tick % (self.TPS * Constants.World.GenChecksPerSec) == 0:
+                    self.InternalServer.world.tick()
                 # log("TPS")
                 self.clock.tick(self.TPS)
                 tick += 1
@@ -850,7 +918,7 @@ class Game:
             elif self.socketClient:
                 self.socketClient.close()
         except Exception as e:
-            log("Error closing socket client:", e)
+            log("Error closing connection to the server:", e)
         try:
             if self.server:
                 self.server.close()

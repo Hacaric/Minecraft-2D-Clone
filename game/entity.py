@@ -162,6 +162,7 @@ class Player(Entity):
             parsed_data[attr[0]] = str(getattr(self.hitbox, attr[0]))
             print(f"Setting hitbox attr {attr[0]} to {parsed_data[attr[0]]}")
         parsed_data["inventory"] = self.inventory.parse()
+        parsed_data["gamemode"] = self.gamemode
         return json.dumps(parsed_data)
 
     def load(self, data:str):
@@ -173,6 +174,10 @@ class Player(Entity):
             if attribute[0] in parsed_data:
                 setattr(self.hitbox, attribute[0], convert_to_type(parsed_data[attribute[0]], attribute[1]))
                 print(f"Loading hitbox attr {attribute[0]}: {parsed_data[attribute[0]]}")
+        try:
+            self.gamemode = parsed_data["gamemode"]
+        except KeyError:
+            self.gamemode = 0
         try:
             self.inventory.load(parsed_data["inventory"])
         except:

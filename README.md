@@ -1,6 +1,5 @@
 # Infinity Craft
 
-### This is NOT an official project by Mojang Studios
 </br>
 
 **Infinity Craft is a Python recreation of the Scratch project Paper Minecraft by Griffpatch.
@@ -12,20 +11,18 @@ If you are reading this please share :D - I'm glad if anybody reads this.</br>
 ## Links
 
 **Website:**
-https://hacaric.github.io/Minecraft-2D-Clone/
+https://hacaric.github.io/Infinity-Craft/
 
 **Wiki:**
-https://github.com/Hacaric/Minecraft-2D-Clone/wiki
+https://github.com/Hacaric/Infinity-Craft/wiki
 
 **Installation guide:**
-https://github.com/Hacaric/Minecraft-2D-Clone/wiki/Download-&-Run
+https://github.com/Hacaric/Infinity-Craft/Download-&-Run
 
 ## Credits
 Original Scratch project by **Griffpatch** - https://scratch.mit.edu/projects/10128407/  
-Original game: **Minecraft** - https://minecraft.net/   
-The logo was created using this site: [https://web.blockbench.net/    ](https://textcraft.net/)
-
-_Textures and sounds are mostly copied from Griffpatch's project._  
+Inpiration: **Minecraft** - https://minecraft.net/   
+The logo was created using this site: https://textcraft.net/
 
 
 ## Requirements:
@@ -52,6 +49,7 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 - block placement and breaking
 - create, save and load worlds
 - infinite world generation (procedural generation will be improved later)</br></br>
+- inventory management
 
 ## Screenshots:
 **Note: Multiplayer not functional yet**

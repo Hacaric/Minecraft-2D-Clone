@@ -69,7 +69,7 @@ gui_files = {
     "chest": "inventory/chest.png",
     "button": "button.png",
     "button_hover": "button_hover.png",
-    "main_menu_background": "background/mc_background.png"
+    "main_menu_background": "background/background2.png"
 }
 health_bar_files = {
     "health0": "health0.png",

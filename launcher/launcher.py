@@ -8,7 +8,7 @@
 python_shell_command = "python"
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-REPOSITORY_USER_AND_NAME = "Hacaric/Minecraft-2D-Clone"
+REPOSITORY_USER_AND_NAME = "Hacaric/Infinity-Craft"
 import os
 GAME_MAIN_PATH = os.path.join(os.path.dirname(__file__), "..", "game", "client.py")
 
@@ -127,7 +127,7 @@ class GameLauncher:
         # log(self.config)
         os.chdir(os.path.join(os.path.dirname( __file__ )))
         self.root = root
-        self.root.title("Minecraft 2D Launcher")
+        self.root.title("Infinity Craft Launcher")
         self.root.geometry("700x480")
 
         self.setup_ui()
@@ -149,7 +149,7 @@ class GameLauncher:
         self.game_versions = data["game_versions"]
         game_version_last_played = data["game_version_last_played"]
         # Title Label
-        title_label = ttk.Label(self.root, text="Minecraft 2D Launcher", font=("Arial", 18))
+        title_label = ttk.Label(self.root, text="Infinity Craft Launcher", font=("Arial", 18))
         title_label.pack(pady=10)
 
 

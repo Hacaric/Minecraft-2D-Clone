@@ -47,7 +47,6 @@ if __name__ == "__main__":
     block_in_screenX = Defaults.Screen.block_in_screenX
     block_size = Defaults.Screen.block_size
     block_in_screenY = Defaults.Screen.block_in_screenY
-    show_f3_screen = True
 
     gameTextures = texture_loader.load_all(block_size, 1)
     # gameTextures.player_textures["body"].fill("red")
@@ -128,6 +127,8 @@ class DisplayManager:
                 log("Game paused")
                 log(self.guiManager.menu_collection.current_menu_idx)
                 self.flag__take_screenshot = True
+            if KEYS[pygame.K_F3]:
+                self.game.show_f3_screen = not self.game.show_f3_screen
 
         elif self.state == "game_paused":
             # if KEYS[pygame.K_ESCAPE]:
@@ -155,7 +156,7 @@ class DisplayManager:
             log("Taking screenshot for internel usage")
             background = self.renderer.newFrame()
             self.renderer.drawInGameUI(background)
-            if show_f3_screen:
+            if self.game.show_f3_screen:
                 self.renderer.draw_f3_screen(background)
             overlay = pygame.Surface(background.get_size(), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 128))
@@ -489,8 +490,7 @@ class Renderer:
 
         frame = self.newFrame()
         self.drawInGameUI(frame)
-        if show_f3_screen:
-            pass
+        if self.game.show_f3_screen:
             self.draw_f3_screen(frame)
         self.screen.blit(frame, (0,0))
         self.framesRenderedInThisSecond += 1
@@ -699,6 +699,7 @@ class Game:
         self.UserName = "Herobrine"
         self.lock_movement = False # When inventory is opened
         self.block_breaking_delay = 0
+        self.show_f3_screen = True
     def setFlag(self, *args, **kwargs):
         """
         Create flag for game system.

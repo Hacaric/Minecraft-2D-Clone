@@ -23,7 +23,7 @@ https://github.com/Hacaric/Minecraft-2D-Clone/wiki/Download-&-Run
 ## Credits
 Original Scratch project by **Griffpatch** - https://scratch.mit.edu/projects/10128407/  
 Original game: **Minecraft** - https://minecraft.net/   
-The logo was created using Minecraft fonts and this site: https://web.blockbench.net/    
+The logo was created using this site: [https://web.blockbench.net/    ](https://textcraft.net/)
 
 _Textures and sounds are mostly copied from Griffpatch's project._  
 
@@ -55,10 +55,13 @@ _Textures and sounds are mostly copied from Griffpatch's project._
 
 ## Screenshots:
 **Note: Multiplayer not functional yet**
-<img width="796" height="602" alt="image" src="https://github.com/user-attachments/assets/b6201fb0-7325-46b3-8fbc-b90432d2c6cf" />
-<img width="802" height="603" alt="image" src="https://github.com/user-attachments/assets/51abe21f-8a68-47b5-a22d-f7e7c3845252" />
-<img width="799" height="600" alt="image" src="https://github.com/user-attachments/assets/25824712-fbe9-4069-98a2-22a797d79541" />
-<img width="797" height="599" alt="image" src="https://github.com/user-attachments/assets/ea31f49a-21a9-4f1f-abf8-2563a25c4c62" />
+<img width="930" height="758" alt="image" src="https://github.com/user-attachments/assets/f8cf119c-ef27-4ae6-b659-719f9fc875b4" />
+<img width="930" height="758" alt="image" src="https://github.com/user-attachments/assets/616a31e5-6baf-48f3-8830-351402de6b9b" />
+<img width="930" height="758" alt="image" src="https://github.com/user-attachments/assets/ad7ac58b-f44b-49bf-8e3a-1845534ee614" />
+<img width="930" height="758" alt="image" src="https://github.com/user-attachments/assets/179e9cb6-0e37-491b-97e7-96f3685d5162" />
+
+
+
 
 
 

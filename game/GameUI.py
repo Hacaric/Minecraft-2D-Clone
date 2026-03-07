@@ -151,7 +151,7 @@ class Hotbar(GameUIElement):
         screen.blit(self.selected_slot_texture, selected_slot_texture_pos)
         for i in range(_config.Constants.Inventory.width):
             item = self.game_obj.InternalServer.main_player.inventory.get_slot(i)
-            if not item:
+            if (not item) or not item.item_id:
                 continue
             item_texture = pygame.transform.scale(self.gameTextures.block_textures[item.item_id], self.item_size)
             item_texture_pos = (self.hotbar_texture_pos[0] + self.hotbar_texture_size[1]*i + self.item_offset, self.hotbar_texture_pos[1] + self.item_offset)

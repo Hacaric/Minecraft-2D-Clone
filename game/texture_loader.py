@@ -9,7 +9,7 @@ gameLogger.log("Loading texture addresses...")
 # Texture and sound data
 #block_names = ["air", "sand", "cobblestone", "stone", "bedrock", "grass", "dirt", "plank", "glass", "wood", "leaves", "short_grass"]
 block_texture_files = {
-    "air": ["#.png"],                          # 0
+    "air": ["#.png"],                        # 0
     "sand": ["sand.png"],                    # 1
     "cobblestone": ["Cobblestone.png"],      # 2
     "stone": ["rock.png"],                   # 3
@@ -23,6 +23,7 @@ block_texture_files = {
     "short_grass":["short_grass.png"],       # 11
     "flower":["rose3.png"],                  # 12
     "chunk_border":["chunk_border.png"],     # 13
+    "undefined":["undefined.png"],           # 14
 }
 block_names = []
 for item in block_texture_files:
@@ -40,6 +41,7 @@ item_texture_names = {
     "glass": ["glass2.png"],           # 8
     "wood":["wood.png"],               # 9
     "leaves":["leaves3.png"],          # 10
+    "undefined":["undefined.png"],     # 11
 }
 
 item_names = []
@@ -246,7 +248,7 @@ class GameTextures:
 def load_all(block_size, block_size_correction_px = 1):
     gameLogger.log("Loading textures...")
     global item_size
-    item_size = block_size/8*7
+    item_size = block_size/8*4
     
     gui_t = load_gui_textures()
     cursor_t = load_cursor_textures(block_size, block_size_correction_px)

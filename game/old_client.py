@@ -17,18 +17,15 @@ import os
 # from importlib.machinery import SourceFileLoader # importing server.py from path
 from gameLogger import *
 import math
-from entity import *
+import json
+from entity import Entity, Player, Hitbox, Mob
 from _config import ConfigFiles, Constants, Defaults
 from keys import keydict
 import world_files as world_files
-from GameUI import *
-from keybinds import Keybinds
-from block import Block
 
-WINDOW_WIDTH, WINDOW_HEIGHT = Defaults.Screen.width, Defaults.Screen.height
-FPS = Defaults.Screen.FPS
-REDUCED_FPS = Defaults.Screen.ReducedFPS
-USE_REDUCES_FPS = Defaults.Screen.UseReducedFPS
+
+WINDOW_WIDTH, WINDOW_HEIGHT = Constants.Screen.width, Constants.Screen.height
+FPS = Constants.Screen.FPS
 PYTHON_BASH_COMMAND = "python"
 SERVER_FILE_PATH = "./server3.py"
 DEFAULT_PORT = random.randint(1111,9999)
@@ -37,20 +34,19 @@ SPLIT_CHR = "\x01"
 KEYS = keydict.copy()
 GAME_DIR = os.path.dirname(__file__)
 threads_running = []
-events = []
 
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 
     CHUNK_SIZE_X, CHUNK_SIZE_Y = Constants.chunk_width, Constants.chunk_height
-    block_in_screenX = Defaults.Screen.block_in_screenX
-    block_size = Defaults.Screen.block_size
-    block_in_screenY = Defaults.Screen.block_in_screenY
+    block_in_screenX = Constants.Screen.block_in_screenX
+    block_size = Constants.Screen.block_size
+    block_in_screenY = Constants.Screen.block_in_screenY
+    show_f3_screen = True
 
-    gameTextures = texture_loader.load_all(block_size, 1)
-    # gameTextures.player_textures["body"].fill("red")
-    # gameTextures.player_textures["body"] = pygame.transform.scale(gameTextures.player_textures["body"], (Constants.Player.size[0]*block_size, Constants.Player.size[1]*block_size))
+    cursor_textures, block_textures, sounds, item_textures, player_textures, gui_textures, health_bar_textures = texture_loader.load_all(block_size, 1)
+    player_textures["body"] = pygame.transform.scale(player_textures["body"], (Constants.Player.size[0]*block_size, Constants.Player.size[1]*block_size))
 
 
     new_log_file(os.path.join(os.path.dirname(__file__), "./log/"), "client-latest.log", replace=True)
@@ -67,22 +63,20 @@ def unregister_thread(thread):
 
 class MouseInput:
     def __init__(self):
-        self.right_button_just_pressed = False
-        self.left_button_just_pressed = False
+        self.mouse_click = False
         self.mouse_pos = (0, 0)
         self.events = []
         self.button_states = [False] * 3
-    def update(self, events, mouse_pos, button_states:tuple[bool,bool,bool]):
-        self.right_button_just_pressed = button_states[0] and not self.button_states[0]
-        self.left_button_just_pressed = button_states[2] and not self.button_states[2]
+    def update(self, mouse_click, events, mouse_pos, button_states:tuple[bool,bool,bool]):
+        self.mouse_click = mouse_click
         self.mouse_pos = mouse_pos
         self.events = events
         self.button_states = button_states
     def read(self):
         # Return a tuple of the current state
-        currData = (self.right_button_just_pressed, self.events, self.mouse_pos, self.button_states)
-        # # Reset per-frame data
-        # self.mouse_just_pressed = False
+        currData = (self.mouse_click, self.events, self.mouse_pos, self.button_states)
+        # Reset per-frame data
+        self.mouse_click = False
         return currData
 class Flag:
     def __init__(self, type, *args, **kwargs):
@@ -127,8 +121,6 @@ class DisplayManager:
                 log("Game paused")
                 log(self.guiManager.menu_collection.current_menu_idx)
                 self.flag__take_screenshot = True
-            if KEYS[pygame.K_F3]:
-                self.game.show_f3_screen = not self.game.show_f3_screen
 
         elif self.state == "game_paused":
             # if KEYS[pygame.K_ESCAPE]:
@@ -153,10 +145,10 @@ class DisplayManager:
 
     def render(self):
         if self.flag__take_screenshot:
-            log("Taking screenshot for internel usage")
+            log("Taking screenshot")
             background = self.renderer.newFrame()
-            self.renderer.drawInGameUI(background)
-            if self.game.show_f3_screen:
+            self.renderer.drawUI(background)
+            if show_f3_screen:
                 self.renderer.draw_f3_screen(background)
             overlay = pygame.Surface(background.get_size(), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 128))
@@ -186,9 +178,9 @@ class TrackingCamera:
         @param target: Entity to track
         @param offset: Offset from target to camera
         @param center_target: 
-            - If 1, camera will be centered to target's center (concidering size of the hitbox: x=entity.x+(entity.width/2))
+            - If 1, camera will be centered to target's center
             - If 0, camera will be centered to target's position
-            - If -1, camera's position will be set to target's position (corner of the camera will be on position of the entity)
+            - If -1, camera's position will be set to target's position
         """
         self.target:Entity = target
         self.target_size = self.target.hitbox.width, self.target.hitbox.height
@@ -203,10 +195,12 @@ class TrackingCamera:
             self.getGetCameraBoundBox = self._getGetCameraBoundBox_center_target_coodrs
         elif self.center_target == -1:
             self.getGetCameraBoundBox = self._getGetCameraBoundBox_no_center
+    # def update(self):
+    #     """
+    #     IMPORTANT: Don't call this function for entity movement!!!
+    #     Entity movement is updated automatically
+    #     """
 
-    def resize(self, window_width, window_height):
-        self.size = window_width, window_height
-        
     def _getGetCameraBoundBox_center_target_center(self) -> tuple[int, int, int, int]:
         return (self.target.hitbox.x + self.offset[0] - self.size[0]/block_size/2 + self.target.hitbox.width/2, 
                 self.target.hitbox.y + self.offset[1] - self.size[1]/block_size/2 + self.target.hitbox.height/2, 
@@ -237,9 +231,6 @@ class TrackingCamera:
         - y coordinate  (Top side) - the bigger one
         """
         raise Exception(f"Error: Functon TrackingCamera.getGetScreenProperties called before loaded in __init__.")
-
-
-
 def remove_comments(text:list[str], comment_start="//"):
     for i in range(len(text)):
         comment_index = text[i].find(comment_start)
@@ -247,10 +238,113 @@ def remove_comments(text:list[str], comment_start="//"):
             text[i] = text[i][:comment_index]
     return text
 
+def format_number(reference_surface, n1, n2):    
+    # log(f"n1: {n1}, n2: {n2} UNFORMATED, {reference_surface.get_size()}")
+    try:
+        if isinstance(n1, str):
+            try:
+                n1 = int(n1)
+            except:
+                if n1[-1] == "%":
+                    n1 = int(n1[:-1]) * reference_surface.get_size()[0] / 100
+                elif n1[-2:] == "px":
+                    n1 = int(n1[:-2])
+                elif n1[-2:] == "vw":
+                    n1 = int(n1[:-2]) * WINDOW_WIDTH / 100
+                elif n1[-2:] == "vh":
+                    n1 = int(n1[:-2]) * WINDOW_HEIGHT / 100
+    except Exception as e:
+        log(f"Error in n1 format_number: {e}")
+        n1 = None
+
+    try:
+        if isinstance(n2, str):
+            try:
+                n2 = int(n2)
+            except:
+                if n2[-1] == "%":
+                    n2 = int(n2[:-1]) * reference_surface.get_size()[1] / 100
+                elif n2[-2:] == "px":
+                    n2 = int(n2[:-2])
+                elif n2[-2:] == "vw":
+                    n2 = int(n2[:-2]) * WINDOW_WIDTH / 100
+                elif n2[-2:] == "vh":
+                    n2 = int(n2[:-2]) * WINDOW_HEIGHT / 100
+    except Exception as e:
+        log(f"Error in n2 format_number: {e}")
+        n2 = None
+    # log(f"n1: {n1}, n2: {n2}")
+    return n1, n2
+
+class GameUIElement:
+    def __init__(self, data:dict):
+        try:
+            texture_path, pos, size = data["texture_path"], data["pos"], data["size"]
+        except Exception as e:
+            log(f"Error loading UI element: {e}")
+        self.input_size = size
+        self.input_pos = pos
+        self.pos = (None, None)
+        self.size = (None, None)
+        self.screen_size = (None, None)
+        self.texture_path = texture_path
+        self.texture = pygame.image.load(texture_path)
+        # self.texture = pygame.transform.scale(self.texture, size)
+
+    def render(self, screen):
+        if self.screen_size != screen.get_size():
+            
+            self.size = format_number(screen, *self.input_size)
+
+            self.pos = format_number(screen, *self.input_pos)
+            # log("GUI_ELEMENT_RENDER", self.pos, self.size)
+
+            self.texture = pygame.transform.scale(self.texture, self.size)
+            
+        screen.blit(self.texture, self.pos)
+
+class GameUI:
+    def __init__(self,config_file):
+        with open(config_file, "r") as f:
+            text = f.read()
+            text = remove_comments(text.split("\n"))
+            text = "\n".join(text)
+            self.data = json.loads(text)
+        # Data format: dict[list,dict[dict[str,any]]]
+        log(f"GAMEUI: {str(self.data)}")
+        self.render_elements = self.data["render"]
+        self.elements_unresolved = self.data["elements"]
+        self.elements = {}
+        # self.elements_resolved = {}
+        # for key in elements.keys:
+        #     for property in elements[key].keys():
+        #         self.elements_resolved[key][property] = elements[key][property]
+        for key in self.elements_unresolved.keys():
+            try:
+                self.elements[key] = GameUIElement(self.elements_unresolved[key])
+                # for property in self.elements_unresolved[key].keys():
+                #     try:
+                #         self.elements_unresolved[key][property]
+                #     except:
+                #         self.elements_unresolved.pop(key)
+                #         log(f"Error: {key} is missing property {property}.")
+            except Exception as e:
+                log(f"Error confguring element '{key}': '{e}'.")
+        for key in self.render_elements:
+            try:
+                self.elements[key]
+            except:
+                self.render_elements.remove(key)
+                log(f"Error: render element {key} doesn't exist")
+
+
+    def render(self, screen):
+        for key in self.render_elements:
+            self.elements[key].render(screen)
 
 
 class Renderer:
-    def __init__(self, screen, world, camera, mouseInput:MouseInput, game):
+    def __init__(self, screen, world, camera, ui_config_file, mouseInput:MouseInput, game):
         # When resizing window delete renderer and create new one
         # self.gameUI = GameUI("./ui.json")
         if screen is None or world is None or camera is None:
@@ -260,158 +354,14 @@ class Renderer:
         self.world:WorldServerSide = world
         self.camera:TrackingCamera = camera
         # self.ui:list[str] = ui
-        self.ui_text = ["Loading..." for i in range(3)]
-        self.inGameUI = GameUI(KEYS, log, game, gameTextures, Keybinds, mouseInput)
+        self.ui_text = ["Loading..." for i in range(2)]
+        self.ui = GameUI(ui_config_file)
         self.temp_framePrototype = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.original_size = (WINDOW_WIDTH, WINDOW_HEIGHT)
         self.mouseInput = mouseInput
         self.game = game
-        self.lastFrameTime = None
-        self.framesRenderedInThisSecond = 0
-        self.FPS = -1
-        self.last_player_X = 0
-        self.player_movement_leg_angle = 0
-        self.player_hand_angle = 0
-        self.mouse_in_world_position = (0,0)
-        self.item_wobble_effect = {}
-        log("Initalizing Renderer instance...")
         if self.temp_framePrototype is None:
             raise ValueError("Renderer: framePrototype is None")
-    def renderPlayer(self):
-        # player_size = {"body":(0.2,0.5)}
-        # if gameTextures.player_textures["body"].get_size() != player_size["body"]:
-        #     gameTextures.player_textures["body"] = pygame.transform.scale(gameTextures.player_textures["body"], player_size["body"])
-
-        # Render player
-    #     self.temp_framePrototype.blit(gameTextures.player_textures["body"], 
-    #                                   (self.temp_framePrototype.get_size()[0]//2 - gameTextures.player_textures["body"].get_size()[0]//2, 
-    #                                    self.temp_framePrototype.get_size()[1]//2 - gameTextures.player_textures["body"].get_size()[1]//2))
-
-    # def render_player(self, player, camera)->None:
-    #     """
-    #     This function was optimized by Codeium AI
-    #     Render player in 2D on the screen.
-
-    #     :param player: Player object to render
-    #     :param screen: Pygame screen object
-    #     :param camera: 2D camera object
-    #     :param mouse_x: Mouse x position
-    #     :param mouse_y: Mouse y position
-    #     :param player_movement_leg_angle: Angle of player leg
-    #     :param is_game_paused_: If game is paused
-    #     :param rotate_player: If player head should be rotated
-    #     """
-        player_hitbox = self.game.InternalServer.main_player.hitbox
-        camera = self.camera
-
-        class Point2d:
-            def __init__(self, x, y):
-                self.x = x
-                self.y = y
-
-        block_in_screenY = round(WINDOW_HEIGHT/block_size)
-        block_multiplyer = 1
-        static_y_add = WINDOW_HEIGHT/2
-
-        def get_screen_pos(camera: Point2d, point: Point2d) -> list[int, int, int]:
-            x = (point.x*block_size - camera.target.hitbox.x*block_size) * block_multiplyer + WINDOW_WIDTH/2
-            y =  (point.y*block_size - camera.target.hitbox.y*block_size) * block_multiplyer
-            #print(x, y)
-            size = block_size * block_multiplyer
-            return [math.floor(x), math.floor(static_y_add-y), size+1]
-        # Calculate angle between player and mouse
-        mouse_offset_x = self.mouse_in_world_position[0] - self.game.InternalServer.main_player.hitbox.x
-        mouse_offset_y = self.mouse_in_world_position[1] - self.game.InternalServer.main_player.hitbox.y - self.game.InternalServer.main_player.hitbox.height
-
-        # Calculate player angle
-        if not (self.game.lock_movement):
-            player_hitbox.angle = math.atan2(mouse_offset_y, mouse_offset_x)
-
-        # Determine which direction the head should face
-        if -math.pi/2 < player_hitbox.angle < math.pi/2:
-            head_texture_name = "head_r"
-        else:
-            head_texture_name = "head_l"
-
-        # Get the head texture
-        head_texture = gameTextures.player_textures[head_texture_name]
-
-        # Calculate the offset for the head texture
-        original_texture = pygame.transform.scale(head_texture, (block_size*0.5, block_size*0.5))
-        if -math.pi/2 < player_hitbox.angle < math.pi/2:
-            offset = pygame.math.Vector2(0, -original_texture.get_height() / 2).rotate(-math.degrees(player_hitbox.angle))
-        else:
-            offset = pygame.math.Vector2(0, original_texture.get_height() / 2).rotate(-math.degrees(player_hitbox.angle))
-
-        # Render the body texture
-        body_texture = pygame.transform.scale(gameTextures.player_textures["body"], (block_size*0.3, block_size))
-        body_rect = body_texture.get_rect(center=(get_screen_pos(camera, Point2d(player_hitbox.x - 0.3/2, player_hitbox.y + 0.2))[0], get_screen_pos(camera, Point2d(player_hitbox.x, player_hitbox.y + 0.3))[1]))
-        self.temp_framePrototype.blit(body_texture, body_rect)
-
-        # Render the head texture
-        head_texture = pygame.transform.rotate(original_texture, math.degrees(player_hitbox.angle))
-        head_rect = head_texture.get_rect(center=(get_screen_pos(camera, Point2d(player_hitbox.x - 0.16, player_hitbox.y))[0] + offset.x, get_screen_pos(camera, Point2d(player_hitbox.x, player_hitbox.y + 0.8))[1] + offset.y))
-        self.temp_framePrototype.blit(head_texture, head_rect)
-
-        # Render the leg textures
-        leg_texture = gameTextures.player_textures["leg_l"] if -math.pi/2 < player_hitbox.angle < math.pi/2 else gameTextures.player_textures["leg_r"]
-        leg_texture = pygame.transform.scale(leg_texture, (block_size * 0.29, block_size * 0.8))
-        rotated_texture = pygame.transform.rotate(leg_texture, self.player_movement_leg_angle)
-        rotation_point = get_screen_pos(camera, Point2d(player_hitbox.x - 0.15, player_hitbox.y - 0.5))
-        rotated_rect = rotated_texture.get_rect(center=(rotation_point[0] + (math.sin(math.radians(self.player_movement_leg_angle/2 + 90))*2*math.sin(math.radians(self.player_movement_leg_angle/2))*block_size*0.29) + int(self.player_movement_leg_angle<0), rotation_point[1]))
-        self.temp_framePrototype.blit(rotated_texture, rotated_rect)
-        rotated_texture = pygame.transform.rotate(leg_texture, -self.player_movement_leg_angle)
-        rotated_rect = rotated_texture.get_rect(center=(rotation_point[0] + (math.sin(math.radians(-self.player_movement_leg_angle/2 + 90))*2*math.sin(math.radians(-self.player_movement_leg_angle/2))*block_size*0.29) + int(self.player_movement_leg_angle<0), rotation_point[1]))
-        self.temp_framePrototype.blit(rotated_texture, rotated_rect)
-
-        # Render the hand texture
-        hand_texture = gameTextures.player_textures["hand1"]
-        hand_texture = pygame.transform.scale(hand_texture, (block_size * 0.8, block_size * 0.29))
-        pivot_point = pygame.math.Vector2(get_screen_pos(camera, Point2d(player_hitbox.x - 0.15, player_hitbox.y + 0.7))[:2])
-        offset = pygame.math.Vector2(block_size * 0.4, 0) 
-        if self.player_hand_angle > 90: # When going backwads
-            angle = 180 - self.player_hand_angle
-        else:
-            angle = self.player_hand_angle
-        looking_right = -math.pi/2 < player_hitbox.angle < math.pi/2
-        angle = (angle * (1 if looking_right else -1))
-        angle -= 90 # Normalize - the hand's texture is oriented differently for some reason
-        rotated_texture = pygame.transform.rotate(hand_texture, angle)
-        rotated_offset = offset.rotate(-angle)
-        rect = rotated_texture.get_rect(center = pivot_point + rotated_offset)
-        self.temp_framePrototype.blit(rotated_texture, rect)
-        
-
-        arm_rotation_speed = 8
-        min_rotation = 25
-        if self.mouseInput.button_states[0]:
-            self.player_hand_angle += arm_rotation_speed
-        else:
-            if abs(self.player_hand_angle) < arm_rotation_speed:
-                self.player_hand_angle = 0
-            elif self.player_hand_angle > 0:
-                self.player_hand_angle -= arm_rotation_speed
-            else:
-                self.player_hand_angle += arm_rotation_speed
-        if self.player_hand_angle > (90 - min_rotation)*2:
-            self.player_hand_angle = min_rotation
-
-        if self.last_player_X != player_hitbox.x:
-            self.player_movement_leg_angle += 7
-        else:
-            # Legs should be straigth when not moving
-            if abs(self.player_movement_leg_angle) < 7:
-                self.player_movement_leg_angle = 0
-            elif self.player_movement_leg_angle > 0:
-                self.player_movement_leg_angle -= 7
-            else:
-                self.player_movement_leg_angle += 7
-
-            # self.player_movement_leg_angle = self.player_movement_leg_angle // 2
-        self.last_player_X = player_hitbox.x
-        if self.player_movement_leg_angle > 35:
-            self.player_movement_leg_angle = -35
-
     def newFrame(self):
         if not self.original_size == (WINDOW_WIDTH, WINDOW_HEIGHT):
             log("Resize", color="#FF0080")
@@ -419,83 +369,38 @@ class Renderer:
             self.temp_framePrototype = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         else:
             self.temp_framePrototype.fill((0,0,0))
-
-        # Gather data
-        camera_bounds = self.camera.getGetCameraBoundBox() # Using center_target=1 - centered on player center
-        camera_base_in_world_position = math.floor(camera_bounds[0]), math.floor(camera_bounds[1])
-        # print(camera_base_in_world_position)
-        # x1-1, y1-1 - so I can render some block only partialy and not have dark spots; To future me: make sure you (I) don't mess it up in rendering - otherwise you will see jumps in places where the screen corner is perfectly on block corner and rounding is done differently in render loop
-        camera_bounds = (camera_bounds[0], camera_bounds[1], camera_bounds[0]+block_in_screenX, camera_bounds[1]+block_in_screenY)
-        # Note: Do not use the original cam bounds, to make sure that the number of blocks in blockmap remains constant. I've been debugging this for several months XD. Thanks to God, that it's over.
-        # I lost the game
-        blockmap:list[list[int]] = self.world.getBlocks(*camera_bounds)
-        screen_offset = (camera_bounds[0] % 1, camera_bounds[1] % 1)
-        # screen_offset:tuple[float, float] = ((math.floor(camera_bounds[0]) - camera_bounds[0]), (math.floor(camera_bounds[1]) - camera_bounds[1]))
-        # print(len(blockmap), self.camera.target.hitbox.x, self.camera.target.hitbox.y, screen_offset, "Cam bounds:", camera_bounds)
-        self.mouse_in_world_position = (camera_bounds[0] + self.mouseInput.mouse_pos[0]/WINDOW_WIDTH*block_in_screenX,
-                                        camera_bounds[3] - self.mouseInput.mouse_pos[1]/WINDOW_HEIGHT*block_in_screenY)
-        self.cursor_world_pos = (math.floor(self.mouse_in_world_position[0]), math.floor(self.mouse_in_world_position[1]))
-        # Render blocks
-        for y in range(len(blockmap)):
-            # if y != len(blockmap) - 1 and y != 0:
-            #     continue
-            for x in range(len(blockmap[0])):
-                screen_x = (x-screen_offset[0])*block_size
-                screen_y = (y+screen_offset[1]-1)*block_size
-                block = blockmap[-y-1][x]
-                block_texture = gameTextures.block_textures[block.id]
-                self.temp_framePrototype.blit(block_texture, (screen_x, screen_y))
-                if block.breaking_progress:
-                    log("rendering breaking progress")
-                    hardness = 5 # 5 is currently hardness of all blocks, TODO
-                    percentage = math.floor(block.breaking_progress / hardness * 10)
-                    breaking_texture = gameTextures.cursor_textures[percentage]
-                    if isinstance(breaking_texture, pygame.Surface):
-                        self.temp_framePrototype.blit(breaking_texture, (screen_x, screen_y))
-                    else:
-                        log("Error, breaking texture is not Surface, it's:", type(breaking_texture))
-
-
-
-       # log(gameTextures.player_textures["body"].get_size()[0], gameTextures.player_textures["body"].get_size()[1], color="#ff0000")
-        # log(self.temp_framePrototype.get_size()[0]//2 - gameTextures.block_textures[5].get_size()[0]//2, self.temp_framePrototype.get_size()[1]//2 - gameTextures.block_textures[5].get_size()[1]//2, color="#ff00d4")
-
-        # Render cursor
-        self.temp_framePrototype.blit(gameTextures.cursor_textures[0], ((self.cursor_world_pos[0] - camera_base_in_world_position[0] - screen_offset[0])*block_size, 
-                                                           (math.floor(camera_bounds[3]) - self.cursor_world_pos[1] + screen_offset[1] - 1)*block_size))
-        # self.temp_framePrototype.blit(gameTextures.cursor_textures[0], ((self.cursor_world_pos[0] - camera_base_in_world_position[0])*block_size + screen_offset[0], 
-        #                                                    (self.cursor_world_pos[1] - camera_base_in_world_position[1])*block_size + screen_offset[1]))
-        
-        # Render player
-        self.renderPlayer()
-        return self.temp_framePrototype
-    
-    def renderEntities(self, frame, world):
-        entities:dict[str, Entity] = world.entities
+        # log(self.camera.getGetCameraBoundBox())
+        # log([i//block_size for i in self.camera.getGetCameraBoundBox()])
         camera_bounds = self.camera.getGetCameraBoundBox()
-
-        for entity_id in entities:
-            entity = entities[entity_id]
-            if entity.entity_type_id == EntityTypes.ITEM.type_id:
-                # if entity_id in self.item_wobble_effect:
-                #     self.item_wobble_effect[entity_id] = sin
-                if entity.variation:
-                    texture = gameTextures.item_textures[entity.variation]
-                else:
-                    texture = gameTextures.item_textures[-1]
-                screen_x = (entity.x-camera_bounds[0])*block_size
-                screen_y = WINDOW_HEIGHT - (entity.y-camera_bounds[1] + 1)*block_size + math.sin((entity.spawn_tick - world.current_tick) / 50)*block_size/4
-                # log(f"Rendring entity {entity.entity_type.name} at x {entity.x}, y {entity.y} to screen x {screen_x}, y {screen_y}")
-                frame.blit(texture, (screen_x, screen_y))
-
-    def drawInGameUI(self, frame):
-        self.inGameUI.render(frame)
-
+        # log(bounds)
+        camera_base_in_world = math.floor(camera_bounds[0]), math.floor(camera_bounds[1])
+        camera_bounds = (camera_bounds[0]-1, camera_bounds[1]-1, camera_bounds[2], camera_bounds[3])
+        blockmap:list[list[int]] = self.world.getBlocks(*camera_bounds)
+        # log(blockmap)
+        screen_offset:tuple[float, float] = (math.floor(camera_bounds[0]) - camera_bounds[0] - 1, camera_bounds[1] - math.floor(camera_bounds[1]) - 1)
+        self.cursor_world_pos = (math.floor(camera_bounds[0] + self.mouseInput.mouse_pos[0]/block_size + 1), 
+                                 math.floor(camera_bounds[3] - self.mouseInput.mouse_pos[1]/block_size))
+        # log(self.cursor_world_pos, self.mouseInput.mouse_pos[1]/block_size)
+        # try:
+        #     self.world.setBlock(*self.cursor_world_pos, -1)
+        # except:
+        #     pass
+        for y in range(len(blockmap)):
+            for x in range(len(blockmap[0])):
+                # if (camera_base_in_world[0] + x, camera_base_in_world[1] + y) == self.cursor_world_pos:
+                #     self.temp_framePrototype.blit(block_textures[-1], ((x+screen_offset[0])*block_size,(y+screen_offset[1])*block_size))
+                # else:
+                    self.temp_framePrototype.blit(block_textures[blockmap[len(blockmap)-1-y][x]], ((x+screen_offset[0])*block_size,(y+screen_offset[1])*block_size))
+        # log(self.world.chunks)
+        self.temp_framePrototype.blit(player_textures["body"], (self.temp_framePrototype.get_size()[0]//2 - player_textures["body"].get_size()[0]//2, self.temp_framePrototype.get_size()[1]//2 - player_textures["body"].get_size()[1]//2))
+        self.temp_framePrototype.blit(cursor_textures[0], ((self.cursor_world_pos[0] - camera_base_in_world[0] + screen_offset[0] + 1)*block_size, 
+                                                           (math.floor(camera_bounds[3]) - self.cursor_world_pos[1] + screen_offset[1])*block_size))
+        return self.temp_framePrototype
+    def drawUI(self, frame):
+        self.ui.render(frame)
     def draw_f3_screen(self, frame):
-        player = next(iter(self.world.players.values()))
-        self.ui_text[0] = f"X: {player.x}, Y: {player.y}"
-        self.ui_text[1] = f"FPS: {self.FPS} TPS: {self.game.TPS}"
-        self.ui_text[2] = f"Cursor world pos x:{self.cursor_world_pos[0]}, y:{self.cursor_world_pos[1]}"
+        self.ui_text[0] = f"X: {self.world.players[0].hitbox.x}, Y: {self.world.players[0].hitbox.y}"
+        self.ui_text[1] = f"TPS: {self.game.TPS}"
         font = pygame.font.Font(None, 24)
         for i in range(len(self.ui_text)):
             # log("Rndering ui text", i)
@@ -503,22 +408,13 @@ class Renderer:
             frame.blit(text_surface, (5, i*26))
         
     def render(self):
-        time_now = round(time.time())
-        if self.lastFrameTime != time_now:
-            self.FPS = self.framesRenderedInThisSecond
-            self.framesRenderedInThisSecond = 0
-            self.lastFrameTime = time_now
-
         frame = self.newFrame()
-        self.renderEntities(frame, self.world)
-        self.drawInGameUI(frame)
-        if self.game.show_f3_screen:
+        self.drawUI(frame)
+        if show_f3_screen:
+            pass
             self.draw_f3_screen(frame)
         self.screen.blit(frame, (0,0))
-        self.framesRenderedInThisSecond += 1
         # pygame.display.flip()
-    def resize(self, window_width, window_height):
-        self.camera.resize(window_width, window_height)
 
 class Server:
     def __init__(self, mode:str = "online"):
@@ -538,10 +434,10 @@ class InternalServer:
         self.mode = "local"
     def start(self):
         if not self.world:
-            raise "Error in InternalServer.start(): world doesn't exist; load world before calling InternalServer.start()!"
+            raise "Error in InternalServer.start(): world doesn't exist load world before starting!"
         self.running = True
     def new_world(self, name, gamemode, username, seed = None):
-        # self.main_player = username
+        self.main_player = username
         if isinstance(seed, int):
             pass
         elif seed:
@@ -549,7 +445,7 @@ class InternalServer:
                 seed = hash(seed)
             except TypeError:
                 log("Unhashable type:", type(seed), "given as seed.")
-                seed = hash(id(seed))
+                seeed = hash(id(seed))
         else:
             seed = random.randint(*Constants.random_seed_range)
         self.seed = seed
@@ -558,17 +454,13 @@ class InternalServer:
         # self.world_file = world_files.new_world(os.path.join(mypath, "saves"), name, gamemode, seed)
         self.world = WorldServerSide(CHUNK_SIZE_X, CHUNK_SIZE_Y, WorldGenerator(CHUNK_SIZE_X, CHUNK_SIZE_Y, seed=seed))
         self.world_generator = self.world.generator
-        self.main_player = Player(username, 0, 0, gamemode=gamemode)
+        self.main_player = Player(self, username, hitbox=Hitbox(0,0,*Constants.Player.size))
 
         self.world.addChunk(0, self.world_generator.generateChunk(0))
-        self.player_id = self.world.addPlayer(self.main_player)
-        if self.player_id is None:
-            log(f"Error: Player is already connected to this world somehow, exiting game...")
-            return
+        self.world.addPlayer(self.main_player)
         log(f"Player spawned on xy: {self.main_player.hitbox.x}, {self.main_player.hitbox.y}")
         self.world.tick_func()
         self.world_file = world_files.WorldFile(self.world, os.path.join(GAME_DIR, Defaults.WorldFile.default_saves_dir), name)
-        return self.player_id
 
     def load_world(self, path, username):
         self.world = WorldServerSide(CHUNK_SIZE_X, CHUNK_SIZE_Y)
@@ -576,29 +468,16 @@ class InternalServer:
             file_data = "".join(f.readlines())
         self.world.loadFromDict(self, world_files.WorldFile.loadFileDataIntoDict(file_data))
         try:
-            log(f"List of players: {self.world.players.keys()}")
-            self.player_id = [player_id for player_id in self.world.players.keys() if player_id == username][0]
-            self.main_player = self.world.players[self.player_id]
+            self.main_player = [player for player in self.world.players if player.name == username][0]
         except Exception as e:
-            log(f"Error in InternalServer.load_world(): Error loading main player: {e}.\nExpected username: {username}.\nCreating new player...")
-            self.player_id = self.world.addPlayer(Player(username, 0, 0), force=True)
-            if self.player_id is None:
-                raise Exception(f"Failed to create player")
-            self.main_player = self.world.players[self.player_id]
-        log(f"Player '{self.player_id}' is now main player")
+            log(f"Error in InternalServer.load_world(): Error loading main player: {e}.\nExpected username: {username}.\nCreating player...")
+            self.world.addPlayer(Player(self, username))
         self.world_generator = self.world.generator
         self.world_file = world_files.WorldFile(self.world, os.path.join(GAME_DIR, Defaults.WorldFile.default_saves_dir), ".".join(os.path.basename(path).split(".")[:-1]), overwrite = True)
-        return self.player_id
     
-    def move_player(self, player_id, player_movement_request):
-        self.world.players[player_id].move(player_movement_request, self.world)
-
     def close(self):
         self.world_file.save()
-    def close_quit_safe(self):
-        self.world_file.save_quit_safe()
-
-
+    
 class socketClient:
     def __init__(self, game):
         self.game = game
@@ -719,24 +598,20 @@ class socketClient:
         log("Disconnected from server")
 class Game:
     def __init__(self, TPS=60, FlagChecksPerSecond=20):
-        self.displayManager = DisplayManager(gui.defaultGameGuiHandler(WINDOW_WIDTH, WINDOW_HEIGHT, gameTextures.gui_textures, self.setFlag), self)
+        self.displayManager = DisplayManager(gui.defaultGameGuiHandler(WINDOW_WIDTH, WINDOW_HEIGHT, gui_textures, self.setFlag), self)
         self.mouseInput = MouseInput()
         self.waitingForResponse = []
         self.TPS = TPS
         self.flags = []
         self.FlagChecksPerSec = FlagChecksPerSecond
         self.socketClient = None#socketClient(self)
-        self.InternalServer:InternalServer = None
-        self.server = None # not used in singleplayer
-        self.ingame:bool = False
+        self.InternalServer = None
+        self.server = None
+        self.ingame = False
         self.clock = pygame.time.Clock()
-        self.player:Player = None
-        self.player_id:str = None
+        self.player = None
         self.world_file = None
         self.UserName = "Herobrine"
-        self.lock_movement = False # When inventory is opened
-        self.block_breaking_delay = 0
-        self.show_f3_screen = True
     def setFlag(self, *args, **kwargs):
         """
         Create flag for game system.
@@ -756,75 +631,36 @@ class Game:
         tickThread.start()
         flagCheckingThread = threading.Thread(target=self.flagChecking)
         flagCheckingThread.start()
-    def _create_move_player_request(self, mouse_click, events, mouse_pos, block_input):
-        if block_input:
-            return MovementRequest_NoInput()
-        
-        movement_request = MovementRequests(
-            KEYS[Keybinds["up"]],
-            KEYS[Keybinds["down"]],
-            KEYS[Keybinds["right"]],
-            KEYS[Keybinds["left"]],
-        )
-        return movement_request
+    def _move_player(self, mouse_click, events, mouse_pos):
+        self.InternalServer.main_player.move(KEYS)
     def _check_block_interactions(self, cursor_world_pos, mouse_click, mouse_buttons_states):
-        
+        #TODO
         if mouse_buttons_states[0]:
-            # log("BLOCK BREAKING")
-            # Temporary vvv, this will be handled by server: it will summon item entity
-            time_ = time.time()
-            if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"] and time_ >= self.block_breaking_delay: # Survival
-                self.block_breaking_delay = time_ + 0.2
-                block_id = self.InternalServer.world.getBlock(*cursor_world_pos).id
-                log(f"Breaking block: {block_id}")
-                if texture_loader.block_names[block_id] != "air":
-                    broken_block = self.InternalServer.world.changeBreakingProgress(*cursor_world_pos, 1)
-                    log(f"Breaking progress: {self.InternalServer.world.getBlock(*cursor_world_pos).breaking_progress}")
-                    # if broken_block and broken_block.id > 0:
-                    #     self.InternalServer.main_player.inventory.pickup_item(Item(broken_block.id))
-
-            elif self.InternalServer.main_player.gamemode == Constants.gamemode_enum["creative"]:
-                block_id = self.InternalServer.world.getBlock(*cursor_world_pos).id
-                if texture_loader.block_names[block_id] != "air":
-                    broken_block = self.InternalServer.world.setBreakingProgress(*cursor_world_pos, 9999)
-            # ^^^
-            
-        if mouse_buttons_states[2] and self.InternalServer.world.getBlock(*cursor_world_pos).id == 0:
-            # log("BLOCK SETTING")
+            log("BLOCK BREAKING")
+            try:
+                self.InternalServer.world.setBlock(*cursor_world_pos, 0)
+            except:
+                pass
+        if mouse_buttons_states[2] and self.InternalServer.world.getBlock(*cursor_world_pos) == 0:
+            log("BLOCK SETTING")
             hitbox = self.InternalServer.main_player.hitbox
-            # log(f"Checking for block collisions with block: x:{math.floor(hitbox.x)} - {math.ceil(hitbox.x + hitbox.width)}, hitbox.x:{hitbox.x}, hitbox.width:{hitbox.width}")
-            if not ((math.floor(hitbox.x) <= cursor_world_pos[0]
-                     and cursor_world_pos[0] < math.ceil(hitbox.x + hitbox.width) 
-                     and math.floor(hitbox.y) <= cursor_world_pos[1] 
-                     and cursor_world_pos[1] < math.ceil(hitbox.y + hitbox.height))):
-                item = self.InternalServer.main_player.inventory.get_slot(self.displayManager.renderer.inGameUI.get_selected_slot())
-                if item:
-                    block_id = item.item_id
-                    block = Block(block_id)
-                    self.InternalServer.world.setBlock(*cursor_world_pos, block)
-                    # Temporary vvv, this will be handled by server
-                    if self.InternalServer.main_player.gamemode == Constants.gamemode_enum["survival"]:
-                        item.amount -= 1
-                        if item.amount == 0:
-                            self.InternalServer.main_player.inventory.set_slot(self.displayManager.renderer.inGameUI.get_selected_slot(), None)
-                    # ^^^
+            if not (math.floor(hitbox.x) <= cursor_world_pos[0] <= math.ceil(hitbox.x + hitbox.width) and math.floor(hitbox.y) <= cursor_world_pos[1] <= math.ceil(hitbox.y + hitbox.height)):
+                self.InternalServer.world.setBlock(*cursor_world_pos, 1)
+                    
     def tickThreadFunc(self):
         global running
         register_thread(threading.current_thread())
+        # target_time_per_tick = 1 / self.TPS  # Time per tick in seconds
         tick = 0
         try:
             while running:
                 mouse_click, events, mouse_pos, mouse_buttons_states = self.mouseInput.read()
                 self.displayManager.tick(mouse_click, events, mouse_pos)
                 if self.ingame:
-                    if not self.lock_movement:
-                        self._check_block_interactions(self.displayManager.renderer.cursor_world_pos, mouse_click, mouse_buttons_states)
-                    player_movement_request = self._create_move_player_request(mouse_click, events, mouse_pos, self.lock_movement)
-                    # self.InternalServer.main_player.move(self.InternalServer.world, player_movement_request)
-                    self.InternalServer.move_player(self.player_id, player_movement_request)
-                    self.displayManager.renderer.inGameUI.update(events)
-                    # if tick % (self.TPS * Constants.World.GenChecksPerSec) == 0:
-                    self.InternalServer.world.tick_func()
+                    self._move_player(mouse_click, events, mouse_pos)
+                    self._check_block_interactions(self.displayManager.renderer.cursor_world_pos, mouse_click, mouse_buttons_states)
+                    if tick % (self.TPS * Constants.World.GenChecksPerSec) == 0:
+                        self.InternalServer.world.tick_func()
                 # log("TPS")
                 self.clock.tick(self.TPS)
                 tick += 1
@@ -832,7 +668,6 @@ class Game:
             log("Error in tickThreadFunc:", e)
             self.running = False
         unregister_thread(threading.current_thread())
-
     def flagChecking(self):
         global running
         register_thread(threading.current_thread())
@@ -848,19 +683,19 @@ class Game:
         self.serverAddr = (LOCALHOST, DEFAULT_PORT)
         if self.flags:
             flag = self.flags[0]
-            # log("FLAG", flag)
+            log("FLAG", flag)
             match flag.type:
                 case "newWorld":
                     log("Initializing internal server...", color="blue")
                     self.InternalServer = InternalServer()
                     log("Creating new world...")
-                    self.player_id = self.InternalServer.new_world(flag.kwargs["name"],flag.kwargs["gamemode"],self.UserName,seed=flag.kwargs["seed"])
+                    self.InternalServer.new_world(flag.kwargs["name"],flag.kwargs["gamemode"],self.UserName,seed=flag.kwargs["seed"])
                     log("Starting internal server...")
                     self.InternalServer.start()
                     log("Internal server started!", color="green")
                     log("Starting renderer", color="blue")
                     self.displayManager.state = "game"
-                    self.displayManager.renderer = Renderer(screen, self.InternalServer.world,TrackingCamera(self.InternalServer.main_player),self.mouseInput,self)
+                    self.displayManager.renderer = Renderer(screen, self.InternalServer.world,TrackingCamera(self.InternalServer.main_player),ConfigFiles.UI_CONFIG_FILE,self.mouseInput,self)
                     log("Renderer started!", color="green")
                     self.displayManager.guiManager.menu_collection.current_menu_idx = self.displayManager.guiManager.menu_collection.tree.find("Game")
                     self.ingame = True
@@ -884,13 +719,13 @@ class Game:
                         log("Initializing internal server...", color="blue")
                         self.InternalServer = InternalServer()
                         log("Loading world from file...")
-                        self.player_id = self.InternalServer.load_world(world_filename, self.UserName)
+                        self.InternalServer.load_world(world_filename, self.UserName)
                         log("Starting internal server...")
                         self.InternalServer.start()
                         log("Internal server started!", color="green")
                         log("Starting renderer", color="blue")
                         self.displayManager.state = "game"
-                        self.displayManager.renderer = Renderer(screen, self.InternalServer.world,TrackingCamera(self.InternalServer.main_player),self.mouseInput,self)
+                        self.displayManager.renderer = Renderer(screen, self.InternalServer.world,TrackingCamera(self.InternalServer.main_player),ConfigFiles.UI_CONFIG_FILE,self.mouseInput,self)
                         log("Renderer started!", color="green")
                         self.displayManager.guiManager.menu_collection.current_menu_idx = self.displayManager.guiManager.menu_collection.tree.find("Game")
                         self.ingame = True
@@ -959,25 +794,19 @@ class Game:
             elif self.socketClient:
                 self.socketClient.close()
         except Exception as e:
-            log("Error closing connection to the server:", e)
+            log("Error closing socket client:", e)
         try:
             if self.server:
                 self.server.close()
         except Exception as e:
             log("Error closing server:", e)
 
-def quit_game(game:Game):
-    try:
-        if game.InternalServer:
-            game.InternalServer.close_quit_safe()
-    except Exception as e:
-        print(f"Error quitting game (in quit_game()): {e}")
 
 def main():
-    global screen, running, WINDOW_WIDTH, WINDOW_HEIGHT, events
+    global gui_textures, screen, running, WINDOW_WIDTH, WINDOW_HEIGHT
 
     clock = pygame.time.Clock()
-    gameTextures.gui_textures = texture_loader.load_gui_textures()
+    gui_textures = texture_loader.load_gui_textures()
 
     game = Game(TPS=Constants.TPS)
     running = True
@@ -989,14 +818,16 @@ def main():
     game.startTicking()
     while running or threads_running:
         screen.fill((0,0,0))
+        mouse_click = False
         mouse_pos = pygame.mouse.get_pos()
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
-                game.ingame = False
                 running = False
-                quit_game(game)
                 log(f"Waiting for threads to finish: {threads_running}", color="blue")
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_click = True
             elif event.type == pygame.KEYDOWN:
                 KEYS[event.key] = True
             elif event.type == pygame.KEYUP:
@@ -1005,34 +836,21 @@ def main():
                 new_size = (event.w, event.h)
                 resizing = True
                 resize_timer = RESIZE_DELAY
-        # log(f"Key I is pressed? ", KEYS[Keybinds["inventory"]])
+
         if resizing:
             screen.blit(TEXT_RESIZING, (pygame.display.get_window_size()[0]//2-TEXT_RESIZING.get_width()//2,pygame.display.get_window_size()[1]//2-TEXT_RESIZING.get_height()//2))
             resize_timer -= clock.get_time() / 1000
             if resize_timer <= 0:
-                # RESIZING WINDOW
                 screen = pygame.display.set_mode(new_size, pygame.RESIZABLE)
                 WINDOW_WIDTH, WINDOW_HEIGHT = new_size
-                game.displayManager.guiManager = gui.defaultGameGuiHandler(WINDOW_WIDTH, WINDOW_HEIGHT, gameTextures.gui_textures, setflag=game.setFlag, currentMenuIdx=game.displayManager.guiManager.menu_collection.current_menu_idx)
+                game.displayManager.guiManager = gui.defaultGameGuiHandler(WINDOW_WIDTH, WINDOW_HEIGHT, gui_textures, setflag=game.setFlag, currentMenuIdx=game.displayManager.guiManager.menu_collection.current_menu_idx)
                 resizing = False
-                global block_size, block_in_screenY
-                block_size, block_in_screenY = Defaults.Screen.get_block_size_properties(WINDOW_WIDTH, WINDOW_HEIGHT)
-                gameTextures.block_textures = texture_loader.load_gameTextures.block_textures(block_size)
-                gameTextures.cursor_textures = texture_loader.load_gameTextures.cursor_textures(block_size)
-                gameTextures.player_textures = texture_loader.load_gameTextures.player_textures(block_size)
-                # log(f"Player body size: {gameTextures.player_textures["body"].get_size()}")
-                game.displayManager.renderer.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        
         else:
-            game.mouseInput.update(events, mouse_pos, pygame.mouse.get_pressed())
+            game.mouseInput.update(mouse_click, events, mouse_pos, pygame.mouse.get_pressed())
             game.render()
         pygame.display.flip()
         # log("FPS")
-        if USE_REDUCES_FPS and not pygame.key.get_focused():
-            # log("Reducing FPS")
-            clock.tick(REDUCED_FPS)
-        else:
-            clock.tick(FPS)
+        clock.tick(FPS)
     # game.exitToMenu()
     close_log_files()
     pygame.quit()

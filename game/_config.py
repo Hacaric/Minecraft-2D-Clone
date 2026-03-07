@@ -15,6 +15,7 @@ class Constants:
         gravity = -1.6
         jump_speed = 18 + 5
         size = (0.85, 1.7)
+        pickup_distance = 0.7
 
     class Inventory:
         # vvv Changing this may cause errors while displaying inventory. Don't change this until implemented 

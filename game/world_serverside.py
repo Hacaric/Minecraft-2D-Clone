@@ -13,6 +13,7 @@ import queue
 import threading
 import json
 import time
+import uuid
 
 
 class World:
@@ -24,8 +25,9 @@ class World:
         # self._chunks_a = {}
         # self._chunks_b = {}
         self.chunks:dict[int, Chunk] = {}
-        self.entities:list[Entity] = []
-        self.players:list[Player] = []
+        self.entities:dict[str, Entity] = {}
+        # self.entity_id_map:dict[str, Entity] = {}
+        self.players:dict[str, Player] = {}
         self.spawn_chunk:int = None
         self.generator = generator
         self.chunk_gen_queue = queue.Queue(-1)
@@ -36,6 +38,7 @@ class World:
         self.blocks_getting_broken = {}
         self.current_tick = 0
         self.block_breaking_delay_ticks = 50
+        self.doBlockDrops = True # TODO: Add gamerules
 
         self._savable_simple_attributes = [["chunk_size_x", int], ["chunk_size_y", int], ["spawn_chunk", int]]
 
@@ -43,7 +46,7 @@ class World:
         try:
             return self.chunks[x]
         except KeyError:
-            # print(f"Error getting chunk {x}: chunk doesnt exist")
+            # log(f"Error getting chunk {x}: chunk doesnt exist")
             return EmptyChunk(self.chunk_size_x, self.chunk_size_y)
     def getChunkByWorldPos(self, x):
         x = x // self.chunk_size_x
@@ -68,8 +71,8 @@ class World:
             chunk = self.getChunkByIndex(chunkX)
             return chunk.getBlock(x, y)
         except Exception as e:
-            print(f"Error getting block: {e}")
-            return gameExceptions.BLOCK_NOT_FOUND
+            log(f"Error getting block: {e}")
+            return Block(gameExceptions.BLOCK_NOT_FOUND)
     def getBlocks(self, x1, y1, x2, y2):
         """
         Retuns rectangular part of world.
@@ -93,13 +96,13 @@ class World:
             row = []
             for x in range(x1, x2):
                 row.append(self.getBlock(x, y))
-            # print("ROW", row)
+            # log("ROW", row)
             blocks.append(row)
-        # print("BLOCK", blocks, x1, y1, x2, y2)
+        # log("BLOCK", blocks, x1, y1, x2, y2)
         return blocks
     def hitboxCollide(self, hitbox:Hitbox):
         blocks = self.getBlocks(hitbox.x, hitbox.y, hitbox.x + hitbox.width, hitbox.y + hitbox.height)
-        # print(len(blocks), blocks)
+        # log(len(blocks), blocks)
         for row in blocks:
             for block in row:
                 if not not_full_blocks[block.id]:
@@ -137,12 +140,14 @@ class World:
             if current_breaking_progress + progress_change >= block_hardness:
                 chunk.setBlock(chunk_relative_x, y, 0)
                 del self.blocks_getting_broken[(x,y)]
-                return block
+                # return block
+                if self.doBlockDrops:
+                    self.addEntity(Entity(x, y, EntityTypes.ITEM, variation=block.id))
             else:
                 chunk.getBlock(chunk_relative_x, y).breaking_progress += progress_change
-                return None
+            return None
         except Exception as e:
-            print(f"Error changing breaking progress: {e}")
+            log(f"Error changing breaking progress: {e}")
             return gameExceptions.INVALID_BLOCK
         
     def setBreakingProgress(self, x, y, progress_value):
@@ -165,7 +170,7 @@ class World:
                 chunk.getBlock(chunk_relative_x, y).breaking_progress = progress_value
                 return None
         except Exception as e:
-            print(f"Error setting breaking progress: {e}")
+            log(f"Error setting breaking progress: {e}")
             return gameExceptions.INVALID_BLOCK
         # try:
         #     chunkX = x // self.chunk_size_x
@@ -183,7 +188,7 @@ class World:
         #         chunk.getBlock(x, y).breaking_progress = progress_value
         #         return None
         # except Exception as e:
-        #     print(f"Error setting breking progress: {e}")
+        #     log(f"Error setting breking progress: {e}")
         #     return gameExceptions.BLOCK_NOT_FOUND
 
 
@@ -203,12 +208,21 @@ class World:
                     y += 1
                     return x, y
         return 0, self.chunk_size_y
-    def addPlayer(self, player:Player):
-        self.players.append(player)
-        if self.chunks:
-            player.hitbox.x, player.hitbox.y = self.find_player_world_spawn()
-    def removePlayer(self, player:Player):
-        self.players.remove(player)
+    def addPlayer(self, player:Player, force=False) -> str|None:
+        """Adds player to the world and returns it's id (usually name) or None on fail"""
+        log(f"Adding player {player.name}")
+        player_id = str(player.name)
+        if player_id in self.players and not force:
+            log(f"Error adding player: player is already connected, refusing connection.")
+            return None
+        self.players[player_id] = player
+        if self.chunks and not player.alive:
+            player.respawn(self)
+        self.addEntity(player, id=player_id)
+        return player.name
+    def removePlayer(self, player_id:str):
+        self.players[player_id].id = None # Disable any remaining functionality
+        del self.players[player_id]
     
     def chunkGenThreadFunction(self, chunkX):
         chunk = self.generator.generateChunk(chunkX)
@@ -216,11 +230,45 @@ class World:
             self.chunk_gen_threads_results_lock_owner = chunkX
             self.chunk_gen_threads_results[chunkX] = chunk
         return
+    
+    def getUniqueEntityID(self):
+        id = uuid.uuid4().hex
+        while id in self.entities:
+           id = uuid.uuid4().hex
+        return id 
+    
+    def addEntity(self, entity:Entity, id=None):
+        log(f"Adding entity: type: '{entity.entity_type_id}', id: '{id}'")
+        if not id:
+            id = self.getUniqueEntityID()
+        entity.setID(id, self.current_tick)
+        self.entities[id] = entity
 
-    def tick(self):
-        self.current_tick += 1
+    def removeEntity(self, entity_id):
+        self.entities[entity_id].setID(None, self.current_tick)
+        del self.entities[entity_id]
+
+    def spawn_entities(self):
+        return
+        # if self.current_tick == 0:
+        #     # Test item
+        #     self.addEntity(Entity(0, 50, EntityTypes.ITEM, variation=3))
+
+    def tick_func(self):
         with self.chunk_gen_threads_lock:
-            for player in self.players:
+            # Chunk generation - using threads - the earlier it starts the better
+            while (not self.chunk_gen_queue.empty()) and len(self.chunk_gen_threads.keys()) <= Constants.World.MaxGenerationThreads:
+                chunk_x = int(self.chunk_gen_queue.get())
+                self.chunk_gen_threads[chunk_x] = threading.Thread(target=self.chunkGenThreadFunction, args=(chunk_x,))
+                self.chunk_gen_threads[chunk_x].start()
+            keys = list(self.chunk_gen_threads_results.keys())
+            for key in keys:
+                self.chunks[key] = self.chunk_gen_threads_results[key]
+                del self.chunk_gen_threads_results[key]
+                del self.chunk_gen_threads[key]
+
+            # Players
+            for player in self.players.values():
                 chunkX = player.hitbox.x // self.chunk_size_x
                 if (not chunkX in self.chunks) and (not chunkX in self.chunk_gen_threads) and (not chunkX in self.chunk_gen_threads_results):
                     self.chunk_gen_queue.put(chunkX)
@@ -229,20 +277,21 @@ class World:
                 if (not chunkX-1 in self.chunks) and (not chunkX-1 in self.chunk_gen_threads) and (not chunkX-1 in self.chunk_gen_threads_results):
                     self.chunk_gen_queue.put(chunkX-1)
 
-            while (not self.chunk_gen_queue.empty()) and len(self.chunk_gen_threads.keys()) <= Constants.World.MaxGenerationThreads:
-                chunk_x = int(self.chunk_gen_queue.get())
-                self.chunk_gen_threads[chunk_x] = threading.Thread(target=self.chunkGenThreadFunction, args=(chunk_x,))
-                self.chunk_gen_threads[chunk_x].start()
-
-            keys = list(self.chunk_gen_threads_results.keys())
-            for key in keys:
-                self.chunks[key] = self.chunk_gen_threads_results[key]
-                del self.chunk_gen_threads_results[key]
-                del self.chunk_gen_threads[key]
-            
+            # Entities
+            self.spawn_entities()
+            # log("Entity list: ", [i.entity_type_id for i in self.entities.values()])
+            for entity_id in list(self.entities.keys()):
+                if entity_id in self.entities: # Prevent deleted entities from being processed (like picked up items)
+                    entity = self.entities[entity_id]
+                    entity.tick(self)
+                    # if entity.entity_type_id == EntityTypes.PLAYER.type_id:
+                    #     log(entity.debug_info(self))
+                    
+            # Reset block breaking progress
             for key in self.blocks_getting_broken:
                 if self.current_tick - self.blocks_getting_broken[key] > self.block_breaking_delay_ticks:
                     self.setBreakingProgress(key[0], key[1], 0)
+        self.current_tick += 1
 
     def parse(self) -> dict:
         data = {}
@@ -251,38 +300,63 @@ class World:
         for attribute in self._savable_simple_attributes:
             data[attribute[0]] = getattr(self, attribute[0])
 
-        players = []
-        for player in self.players:
-            players.append(player.parse())
-        players = json.dumps(players)
-        data["players"] = players
+        # players = []
+        # for player in self.players.values():
+        #     players.append(player.parse())
+        # players = json.dumps(players)
+        # data["players"] = players
 
         chunks = {}
         for key, value in self.chunks.items():
             chunks[key] = value.parse()
-            print(f"Chunk {key} parsed successfully!")
+            log(f"Chunk {key} parsed successfully!")
         chunks = json.dumps(chunks, separators=(",", ":"))
         data["chunks"] = chunks
-        # print(f"World's chnks: {self.chunks.keys()}")
+        # log(f"World's chnks: {self.chunks.keys()}")
+
+        entities = {}
+        for key, value in self.entities.items():
+            entities[key] = value.parse()
+            log(f"Entity {key} (type:{value.entity_type_id}) parsed successfully!")
+        entities = json.dumps(entities)
+        log(f"Parsed entities: {entities}")
+        data["entities"] = entities
 
         return data
     
     def loadFromDict(self, server, data:dict[str, str], overwrite_loaded_chunks=True)->None:
-        players = json.loads(data["players"])
-        print("World.loadFromDict: data['players']=", players)
-        for player_data in players:
-            player = Player(server, "")
-            player.load(player_data)
-            self.addPlayer(player)
-        print(f"World's players: {[player.name for player in self.players]}")
+        # players = json.loads(data["players"])
+        # log("World.loadFromDict - data['players']: ", players)
+        # for player_data in players:
+        #     player = Player("",0,0)
+        #     player.load(player_data)
+        #     self.addPlayer(player)
+        # log(f"World's players: {self.players.keys()}")
 
         chunks = json.loads(data["chunks"])
-        # print("World.loadFromDict: data['chuks']=", chunks)
-        for key, player_data in chunks.items():
+        # log("World.loadFromDict: data['chuks']=", chunks)
+        for key, chunk_data in chunks.items():
             key = int(key)
             if overwrite_loaded_chunks or (not key in self.chunks):
-                self.chunks[key] = ChunkLoadFromStr(player_data)
-            print(f"Chunk {key} parsed successfully!")
+                self.chunks[key] = ChunkLoadFromStr(chunk_data)
+            log(f"Chunk {key} loaded successfully!")
+
+        entities = json.loads(data["entities"])
+        # log("World.loadFromDict: data['chuks']=", chunks)
+        for entity_id, entity_data in entities.items():
+            # if entity_data["entity_type_id"] == EntityTypes.PLAYER.type_id:
+            #     player = Player(entity_id,0,0)
+            #     player.load(entity_data)
+            #     self.addEntity(player, id=entity_id)
+            # else:# entity_data["entity_type_id"] == EntityTypes.ITEM
+            entity = LoadEntityFromString(entity_data)
+            log("Before:", entity.debug_info(self))
+            if entity.entity_type_id == EntityTypes.PLAYER.type_id:
+                self.addPlayer(entity)
+            else:
+                self.addEntity(entity, id=entity_id)
+            log("After:", entity.debug_info(self))
+            log(f"Entity {entity_id} (type:{self.entities[entity_id].entity_type_id}) loaded successfully!")
 
 
         for attribute in self._savable_simple_attributes:
@@ -290,4 +364,4 @@ class World:
                 setattr(self, attribute[0], attribute[1](data[attribute[0]]))
             #                               ^^^^ type conversion ^^^^ attribute[1] is type, for example int, so attribute[1](...) = int(...)
             except Exception as e:
-                print(f"Error loading attribute '{attribute[0]}' of type '{attribute[1]}': {e}")
+                log(f"Error loading attribute '{attribute[0]}' of type '{attribute[1]}': {e}")

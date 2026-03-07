@@ -33,8 +33,11 @@ class Chunk:
         return not (False in tests)
     def getBlock(self, x:int, y:int):
         if x < self.width and x >= 0 and y < self.height and y >= 0:
-            return self.blocks[x][y]
-        return -1
+            block = self.blocks[x][y]
+            if isinstance(block, int):
+                return Block(block)
+            return block
+        return Block(-1)
     def setBlock(self, x:int, y:int, block:Block):
         if isinstance(block, int):
             block = Block(block)

@@ -3,7 +3,7 @@
 </br>
 
 **Infinity Craft is a Python recreation of the Scratch project Paper Minecraft by Griffpatch.
-It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and inventory are still in development.**</br></br>
+It's a 2D Minecraft clone—you can mine and place blocks, move around, but survival mode and multiplayer are still in development.**</br></br>
 If you are reading this please share :D - I'm glad if anybody reads this.</br>
 
 ***
@@ -48,6 +48,7 @@ The logo was created using this site: https://textcraft.net/
 ## Features:
 - block placement and breaking
 - create, save and load worlds
+- blocks drop items
 - infinite world generation (procedural generation will be improved later)</br></br>
 - inventory management
 
